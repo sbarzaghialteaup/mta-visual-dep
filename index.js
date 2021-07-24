@@ -16,6 +16,12 @@ const nodeType = {
     serviceHanaInstance: 'HANA CLOUD',
     serviceHtml5Repo: 'HTML5 REPOSITORY',
     serviceXsuaa: 'XSUAA',
+    serviceDestination: 'DESTINATION',
+};
+
+const linkType = {
+    readWrite: 'read/write',
+    deploy: 'deploy',
 };
 
 function renderNodeJS(node) {
@@ -70,6 +76,24 @@ function renderServiceHtml5(node) {
     return nodeAttributes;
 }
 
+function renderServiceDestination(node) {
+    const nodeAttributes = {
+        label: `\\n${node.type}\\n\\n${node.name}`,
+        shape: `cds`,
+        color: `orange`,
+    };
+    return nodeAttributes;
+}
+
+function renderServiceXsuaa(node) {
+    const nodeAttributes = {
+        label: `{${node.type}|${node.name}}`,
+        shape: `record`,
+        color: `orange`,
+    };
+    return nodeAttributes;
+}
+
 function renderNode(node) {
     let attributes = {};
 
@@ -85,6 +109,10 @@ function renderNode(node) {
         attributes = renderServiceHanaInstance(node);
     } else if (node.type === nodeType.serviceHtml5Repo) {
         attributes = renderServiceHtml5(node);
+    } else if (node.type === nodeType.serviceDestination) {
+        attributes = renderServiceDestination(node);
+    } else if (node.type === nodeType.serviceXsuaa) {
+        attributes = renderServiceXsuaa(node);
     }
 
     console.log(attributes);
@@ -138,12 +166,50 @@ function getNodeType(nodeInfo) {
             if (nodeInfo.additionalInfo.service === 'xsuaa') {
                 return nodeType.serviceXsuaa;
             }
+            if (nodeInfo.additionalInfo.service === 'destination') {
+                return nodeType.serviceDestination;
+            }
         }
     }
 
     return nodeType.other;
 }
 
+function getLinkType(link) {
+    if (
+        link.sourceNode.type === nodeType.nodejs &&
+        link.destNode.type === nodeType.serviceHanaInstance
+    ) {
+        return 'read/write';
+    }
+
+    if (
+        link.sourceNode.type === nodeType.dbDeployer &&
+        link.destNode.type === nodeType.serviceHanaInstance
+    ) {
+        return 'deploy to';
+    }
+
+    if (
+        link.sourceNode.type === nodeType.deployer &&
+        link.destNode.type === nodeType.serviceDestination
+    ) {
+        return 'deploy destinations';
+    }
+
+    if (
+        link.sourceNode.type === nodeType.deployer &&
+        link.destNode.type === nodeType.serviceXsuaa
+    ) {
+        return 'deploy xsuaa';
+    }
+
+    return 'deploy';
+}
+
+/**
+ * Main
+ */
 async function main() {
     const mtaGraph = [];
 
@@ -190,16 +256,10 @@ async function main() {
 
     mtaGraph.forEach((sourceNode) => {
         sourceNode.link?.forEach((link) => {
-            link.node = mtaGraph.indexes[link.name];
+            link.sourceNode = sourceNode;
+            link.destNode = mtaGraph.indexes[link.name];
 
-            if (
-                sourceNode.type === nodeType.nodejs &&
-                link.node.type === nodeType.serviceHanaInstance
-            ) {
-                link.type = 'read/write';
-            } else {
-                link.type = 'deploy';
-            }
+            link.type = getLinkType(link);
         });
     });
 
