@@ -31,7 +31,8 @@ const linkType = {
     defineDestination: 'defineDestination',
     pointToService: 'point to service',
     pointToUrl: 'point to url',
-    deployApps: 'deploy apps to',
+    deployAppsTo: 'deploy apps to',
+    deployApp: 'deploy app',
 };
 
 function renderNodeJS(node) {
@@ -245,7 +246,7 @@ function getLinkType(link) {
         link.sourceNode.type === nodeType.deployer &&
         link.destNode.type === nodeType.serviceHtml5Repo
     ) {
-        return linkType.deployApps;
+        return linkType.deployAppsTo;
     }
 
     return 'deploy';
@@ -434,6 +435,22 @@ async function main() {
                 link.type === linkType.readWrite
             ) {
                 link.cluster = 'CAP SERVICE';
+            }
+
+            if (
+                link.type === linkType.createDestinationService ||
+                link.type === linkType.defineDestination ||
+                link.type === linkType.pointToService ||
+                link.type === linkType.pointToUrl
+            ) {
+                link.cluster = 'DESTINATION';
+            }
+
+            if (
+                link.type === linkType.deployAppsTo ||
+                link.type === linkType.deployApp
+            ) {
+                link.cluster = 'HTML5 APPS';
             }
         });
     });
