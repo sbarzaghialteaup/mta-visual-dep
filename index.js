@@ -208,14 +208,14 @@ function getLinkType(link) {
         link.sourceNode.type === nodeType.deployer &&
         link.destNode.type === nodeType.serviceDestination
     ) {
-        return 'deploy destinations';
+        return 'create destination service';
     }
 
     if (
         link.sourceNode.type === nodeType.deployer &&
         link.destNode.type === nodeType.serviceXsuaa
     ) {
-        return 'deploy xsuaa';
+        return 'create xsuaa service';
     }
 
     if (
@@ -283,6 +283,7 @@ async function main() {
     });
 
     mtaGraph.linksIndex = [];
+    mtaGraph.indexServiceName = [];
 
     mta.resources.forEach((resource) => {
         const newNode = {
@@ -301,6 +302,12 @@ async function main() {
 
         mtaGraph.push(newNode);
         mtaGraph.linksIndex[newNode.name] = newNode;
+
+        if (newNode.additionalInfo.resource?.parameters['service-name']) {
+            mtaGraph.indexServiceName[
+                newNode.additionalInfo.resource.parameters['service-name']
+            ] = newNode;
+        }
     });
 
     mtaGraph.forEach((node) => {
@@ -325,13 +332,27 @@ async function main() {
                         },
                     };
 
+                    newDestinationNode.link = [];
+
                     mtaGraph.push(newDestinationNode);
 
                     const serviceDestinationNode =
                         getServiceDestinationNode(node);
 
                     serviceDestinationNode.link.push({
+                        type: 'define destination',
                         name: destination.Name,
+                    });
+
+                    const pointToNode =
+                        mtaGraph.indexServiceName[
+                            destination.ServiceInstanceName
+                        ];
+
+                    newDestinationNode.link.push({
+                        name: pointToNode.name,
+                        node: pointToNode,
+                        type: 'point to service',
                     });
                 }
             );
