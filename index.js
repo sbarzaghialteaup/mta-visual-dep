@@ -5,6 +5,7 @@ const graphviz = require('graphviz');
 
 const categories = {
     module: 'module',
+    resource: 'resource',
 };
 
 const nodeType = {
@@ -12,6 +13,9 @@ const nodeType = {
     dbDeployer: 'DB DEPLOYER',
     deployer: 'DEPLOYER',
     html5: 'APP HTML5',
+    serviceHanaInstance: 'HANA CLOUD',
+    serviceHtml5Repo: 'HTML5 REPOSITORY',
+    serviceXsuaa: 'XSUAA',
 };
 
 function renderNodeJS(node) {
@@ -49,6 +53,22 @@ function renderHtml5(node) {
     };
     return nodeAttributes;
 }
+function renderServiceHanaInstance(node) {
+    const nodeAttributes = {
+        label: `\\n${node.type}\\n\\n${node.name}`,
+        shape: `cylinder`,
+        color: `orange`,
+    };
+    return nodeAttributes;
+}
+function renderServiceHtml5(node) {
+    const nodeAttributes = {
+        label: `\\n${node.type}\\n\\n${node.name}`,
+        shape: `folder`,
+        color: `orange`,
+    };
+    return nodeAttributes;
+}
 
 function renderNode(node) {
     let attributes = {};
@@ -61,6 +81,10 @@ function renderNode(node) {
         attributes = renderDeployer(node);
     } else if (node.type === nodeType.html5) {
         attributes = renderHtml5(node);
+    } else if (node.type === nodeType.serviceHanaInstance) {
+        attributes = renderServiceHanaInstance(node);
+    } else if (node.type === nodeType.serviceHtml5Repo) {
+        attributes = renderServiceHtml5(node);
     }
 
     console.log(attributes);
@@ -72,6 +96,12 @@ async function render(mtaGraph) {
 
     mtaGraph.forEach((node) => {
         mtaGraphVis.addNode(node.name, renderNode(node));
+
+        node.link?.forEach((link) => {
+            mtaGraphVis.addEdge(node.name, link.name, {
+                label: link.type,
+            });
+        });
     });
 
     fs.writeFileSync('./test.dot', mtaGraphVis.to_dot());
@@ -95,6 +125,22 @@ function getNodeType(nodeInfo) {
         }
     }
 
+    if (nodeInfo.additionalInfo.category === categories.resource) {
+        if (nodeInfo.additionalInfo.type === 'com.sap.xs.hdi-container') {
+            return nodeType.serviceHanaInstance;
+        }
+        if (
+            nodeInfo.additionalInfo.type === 'org.cloudfoundry.managed-service'
+        ) {
+            if (nodeInfo.additionalInfo.service === 'html5-apps-repo') {
+                return nodeType.serviceHtml5Repo;
+            }
+            if (nodeInfo.additionalInfo.service === 'xsuaa') {
+                return nodeType.serviceXsuaa;
+            }
+        }
+    }
+
     return nodeType.other;
 }
 
@@ -113,7 +159,48 @@ async function main() {
 
         newNode.type = getNodeType(newNode);
 
+        newNode.link = [];
+
+        module.requires?.forEach((require) => {
+            newNode.link.push({
+                name: require.name,
+            });
+        });
+
         mtaGraph.push(newNode);
+    });
+
+    mtaGraph.indexes = [];
+
+    mta.resources.forEach((resource) => {
+        const newNode = {
+            name: resource.name,
+            additionalInfo: {
+                category: categories.resource,
+                type: resource.type,
+                service: resource.parameters.service,
+            },
+        };
+
+        newNode.type = getNodeType(newNode);
+
+        mtaGraph.push(newNode);
+        mtaGraph.indexes[newNode.name] = newNode;
+    });
+
+    mtaGraph.forEach((sourceNode) => {
+        sourceNode.link?.forEach((link) => {
+            link.node = mtaGraph.indexes[link.name];
+
+            if (
+                sourceNode.type === nodeType.nodejs &&
+                link.node.type === nodeType.serviceHanaInstance
+            ) {
+                link.type = 'read/write';
+            } else {
+                link.type = 'deploy';
+            }
+        });
     });
 
     render(mtaGraph);

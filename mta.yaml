@@ -8,7 +8,6 @@ modules:
     path: gen/srv
     requires:
       - name: test-bas-db
-      - name: sam
     provides:
       - name: srv-api
         properties:
