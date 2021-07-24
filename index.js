@@ -7,6 +7,7 @@ const graphviz = require('graphviz');
 const categories = {
     module: 'module',
     resource: 'resource',
+    destination: 'destination',
 };
 
 const nodeType = {
@@ -17,7 +18,8 @@ const nodeType = {
     serviceHanaInstance: 'HANA CLOUD',
     serviceHtml5Repo: 'HTML5 REPOSITORY',
     serviceXsuaa: 'XSUAA',
-    serviceDestination: 'DESTINATION',
+    serviceDestination: 'SERVICE DESTINATION',
+    destination: 'DESTINATION',
 };
 
 const linkType = {
@@ -95,6 +97,15 @@ function renderServiceXsuaa(node) {
     return nodeAttributes;
 }
 
+function renderDestination(node) {
+    const nodeAttributes = {
+        label: `\\n\\n${node.name}`,
+        shape: `underline`,
+        color: `blue`,
+    };
+    return nodeAttributes;
+}
+
 function renderNode(node) {
     let attributes = {};
 
@@ -114,6 +125,8 @@ function renderNode(node) {
         attributes = renderServiceDestination(node);
     } else if (node.type === nodeType.serviceXsuaa) {
         attributes = renderServiceXsuaa(node);
+    } else if (node.type === nodeType.destination) {
+        attributes = renderDestination(node);
     }
 
     console.log(attributes);
@@ -303,6 +316,17 @@ async function main() {
         if (node.type === nodeType.deployer) {
             node.additionalInfo.module?.parameters?.content?.instance?.destinations?.forEach(
                 (destination) => {
+                    const newDestinationNode = {
+                        name: destination.Name,
+                        type: nodeType.destination,
+                        additionalInfo: {
+                            category: categories.destination,
+                            destination,
+                        },
+                    };
+
+                    mtaGraph.push(newDestinationNode);
+
                     const serviceDestinationNode =
                         getServiceDestinationNode(node);
 
