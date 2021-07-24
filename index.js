@@ -243,7 +243,7 @@ async function main() {
         mtaGraph.push(newNode);
     });
 
-    mtaGraph.indexes = [];
+    mtaGraph.linksIndex = [];
 
     mta.resources.forEach((resource) => {
         const newNode = {
@@ -258,13 +258,13 @@ async function main() {
         newNode.type = getNodeType(newNode);
 
         mtaGraph.push(newNode);
-        mtaGraph.indexes[newNode.name] = newNode;
+        mtaGraph.linksIndex[newNode.name] = newNode;
     });
 
     mtaGraph.forEach((sourceNode) => {
         sourceNode.link?.forEach((link) => {
             link.sourceNode = sourceNode;
-            link.destNode = mtaGraph.indexes[link.name];
+            link.destNode = mtaGraph.linksIndex[link.name];
 
             link.type = getLinkType(link);
         });

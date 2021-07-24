@@ -20,7 +20,7 @@
         "start": "node index.js",
         "lint": "eslint .",
         "postlint": "echo ✅ lint valid",
-        "test": "npm run lint && exit 0",
+        "test": "npm run lint && npm start && exit 0",
         "prepare": "husky install"
     },
     "author": "sbarzaghi@alteanet.it",

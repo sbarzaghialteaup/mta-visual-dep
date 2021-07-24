@@ -11,9 +11,9 @@ graph MTA {
   "test-bas_ui_deployer" [ label = "\nDEPLOYER\n\ntest-bas_ui_deployer", shape =box3d, color = "blue" ];
   "cavolo" [ label = "\nAPP HTML5\n\ncavolo", shape =rect, color = "green" ];
   "test-bas-srv" -- "test-bas-db" [ label = "read/write" ];
-  "test-bas-db-deployer" -- "test-bas-db" [ label = "deploy to" ];
+  "test-bas-db-deployer" -- "test-bas-db" [ label = "deploy tables to" ];
   "test-bas-destination-content" -- "test-bas-destination-service" [ label = "deploy destinations" ];
   "test-bas-destination-content" -- "uaa_test-bas" [ label = "deploy xsuaa" ];
-  "test-bas-app-content" -- "test-bas_html_repo_host" [ label = "deploy" ];
-  "test-bas_ui_deployer" -- "test-bas_html_repo_host" [ label = "deploy" ];
+  "test-bas-app-content" -- "test-bas_html_repo_host" [ label = "deploy apps" ];
+  "test-bas_ui_deployer" -- "test-bas_html_repo_host" [ label = "deploy apps" ];
 }
