@@ -25,7 +25,13 @@ const nodeType = {
 
 const linkType = {
     readWrite: 'read/write',
-    deploy: 'deploy',
+    deployTablesTo: 'deploy tables to',
+    createDestinationService: 'create destination service',
+    createXsuaaService: 'create xsuaa service',
+    defineDestination: 'defineDestination',
+    pointToService: 'point to service',
+    pointToUrl: 'point to url',
+    deployApps: 'deploy apps to',
 };
 
 function renderNodeJS(node) {
@@ -136,12 +142,28 @@ function renderNode(node) {
 
 async function render(mtaGraph) {
     const mtaGraphVis = graphviz.graph('MTA');
+    const clusters = [];
 
     mtaGraph.forEach((node) => {
         mtaGraphVis.addNode(node.name, renderNode(node));
 
         node.link?.forEach((link) => {
-            mtaGraphVis.addEdge(node.name, link.name, {
+            let cluster = mtaGraphVis;
+
+            if (link.cluster) {
+                const clusterId = `cluster_${link.cluster.replace(/ /g, '_')}`;
+
+                cluster = clusters[clusterId];
+
+                if (!cluster) {
+                    cluster = mtaGraphVis.addCluster(clusterId);
+                    cluster.set('label', link.cluster);
+
+                    clusters[clusterId] = cluster;
+                }
+            }
+
+            cluster.addEdge(node.name, link.name, {
                 label: link.type,
             });
         });
@@ -195,35 +217,35 @@ function getLinkType(link) {
         link.sourceNode.type === nodeType.nodejs &&
         link.destNode.type === nodeType.serviceHanaInstance
     ) {
-        return 'read/write';
+        return linkType.readWrite;
     }
 
     if (
         link.sourceNode.type === nodeType.dbDeployer &&
         link.destNode.type === nodeType.serviceHanaInstance
     ) {
-        return 'deploy tables to';
+        return linkType.deployTablesTo;
     }
 
     if (
         link.sourceNode.type === nodeType.deployer &&
         link.destNode.type === nodeType.serviceDestination
     ) {
-        return 'create destination service';
+        return linkType.createDestinationService;
     }
 
     if (
         link.sourceNode.type === nodeType.deployer &&
         link.destNode.type === nodeType.serviceXsuaa
     ) {
-        return 'create xsuaa service';
+        return linkType.createXsuaaService;
     }
 
     if (
         link.sourceNode.type === nodeType.deployer &&
         link.destNode.type === nodeType.serviceHtml5Repo
     ) {
-        return 'deploy apps';
+        return linkType.deployApps;
     }
 
     return 'deploy';
@@ -340,7 +362,7 @@ async function main() {
                     mtaGraph.push(newDestinationNode);
 
                     node.link.push({
-                        type: 'define destination',
+                        type: linkType.defineDestination,
                         name: destination.Name,
                     });
 
@@ -358,7 +380,7 @@ async function main() {
                     mtaGraph.push(newUrlNode);
 
                     newDestinationNode.link.push({
-                        type: 'point to url',
+                        type: linkType.pointToUrl,
                         name: newUrlNode.name,
                     });
                 }
@@ -386,7 +408,7 @@ async function main() {
                         getServiceDestinationNode(node);
 
                     serviceDestinationNode.link.push({
-                        type: 'define destination',
+                        type: linkType.defineDestination,
                         name: destination.Name,
                     });
 
@@ -398,11 +420,22 @@ async function main() {
                     newDestinationNode.link.push({
                         name: pointToNode.name,
                         node: pointToNode,
-                        type: 'point to service',
+                        type: linkType.pointToService,
                     });
                 }
             );
         }
+    });
+
+    mtaGraph.forEach((node) => {
+        node.link?.forEach((link) => {
+            if (
+                link.type === linkType.deployTablesTo ||
+                link.type === linkType.readWrite
+            ) {
+                link.cluster = 'CAP SERVICE';
+            }
+        });
     });
 
     render(mtaGraph);
