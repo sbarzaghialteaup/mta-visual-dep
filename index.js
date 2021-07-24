@@ -20,6 +20,7 @@ const nodeType = {
     serviceXsuaa: 'XSUAA',
     serviceDestination: 'SERVICE DESTINATION',
     destination: 'DESTINATION',
+    destinationURL: 'DESTINATION URL',
 };
 
 const linkType = {
@@ -301,6 +302,7 @@ async function main() {
         newNode.link = [];
 
         mtaGraph.push(newNode);
+
         mtaGraph.linksIndex[newNode.name] = newNode;
 
         if (newNode.additionalInfo.resource?.parameters['service-name']) {
@@ -318,6 +320,50 @@ async function main() {
             link.type = getLinkType(link);
         });
     });
+
+    mtaGraph
+        .filter((node) => node.additionalInfo.category === categories.resource)
+        .forEach((node) => {
+            node.additionalInfo.resource.parameters?.config?.init_data?.instance?.destinations?.forEach(
+                (destination) => {
+                    const newDestinationNode = {
+                        type: nodeType.destination,
+                        name: destination.Name,
+                        additionalInfo: {
+                            category: categories.destination,
+                            destination,
+                        },
+                    };
+
+                    newDestinationNode.link = [];
+
+                    mtaGraph.push(newDestinationNode);
+
+                    node.link.push({
+                        type: 'define destination',
+                        name: destination.Name,
+                    });
+
+                    const newUrlNode = {
+                        type: nodeType.destinationURL,
+                        name: destination.URL,
+                        additionalInfo: {
+                            category: categories.destination,
+                            destination,
+                        },
+                    };
+
+                    newUrlNode.link = [];
+
+                    mtaGraph.push(newUrlNode);
+
+                    newDestinationNode.link.push({
+                        type: 'point to url',
+                        name: newUrlNode.name,
+                    });
+                }
+            );
+        });
 
     mtaGraph.forEach((node) => {
         if (node.type === nodeType.deployer) {
