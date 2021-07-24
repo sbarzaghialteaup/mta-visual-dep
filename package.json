@@ -1,0 +1,28 @@
+{
+    "name": "mta-visual-dep",
+    "version": "0.0.1",
+    "description": "SAP MTA Dependency Visualizer",
+    "main": "index.js",
+    "dependencies": {
+        "graphviz": "0.0.9",
+        "yaml": "^1.10.2"
+    },
+    "devDependencies": {
+        "eslint": "^7.31.0",
+        "eslint-config-airbnb-base": "^14.2.1",
+        "eslint-config-prettier": "^8.3.0",
+        "eslint-plugin-import": "^2.23.4",
+        "eslint-plugin-prettier": "3.4.0",
+        "prettier": "2.3.2",
+        "husky": "^7.0.0"
+    },
+    "scripts": {
+        "start": "node index.js",
+        "lint": "eslint .",
+        "postlint": "echo ✅ lint valid",
+        "test": "npm run lint && exit 0",
+        "prepare": "husky install"
+    },
+    "author": "sbarzaghi@alteanet.it",
+    "license": "ISC"
+}

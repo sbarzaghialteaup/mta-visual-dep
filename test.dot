@@ -1,0 +1,9 @@
+graph MTA {
+  "test-bas-srv" [ label = "\nCAP SERVICE\n\ntest-bas-srv", shape =house, color = "blue" ];
+  "test-bas-db-deployer" [ label = "\nDB DEPLOYER\n\ntest-bas-db-deployer", shape =box3d, color = "blue" ];
+  "test-bas-destination-content" [ label = "\nDEPLOYER\n\ntest-bas-destination-content", shape =box3d, color = "blue" ];
+  "test-bas-app-content" [ label = "\nDEPLOYER\n\ntest-bas-app-content", shape =box3d, color = "blue" ];
+  "project3" [ label = "\nAPP HTML5\n\nproject3", shape =rect, color = "green" ];
+  "test-bas_ui_deployer" [ label = "\nDEPLOYER\n\ntest-bas_ui_deployer", shape =box3d, color = "blue" ];
+  "cavolo" [ label = "\nAPP HTML5\n\ncavolo", shape =rect, color = "green" ];
+}
