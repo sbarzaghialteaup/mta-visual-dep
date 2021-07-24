@@ -1,5 +1,6 @@
 /* eslint-disable no-console */
 const fs = require('fs');
+const process = require('process');
 const YAML = require('yaml');
 const graphviz = require('graphviz');
 
@@ -214,6 +215,27 @@ function getLinkType(link) {
     return 'deploy';
 }
 
+function getServiceDestinationNode(node) {
+    const serviceDestinationLink = node.link.find(
+        (link) => link.destNode.type === nodeType.serviceDestination
+    );
+
+    if (!serviceDestinationLink) {
+        console.error(
+            `Module ${node.name} with defined destinations but without service destination`
+        );
+        process.exit(1);
+    }
+
+    if (!serviceDestinationLink.destNode) {
+        console.error(
+            `Resource ${serviceDestinationLink.name} required by module ${node.name}`
+        );
+        process.exit(1);
+    }
+
+    return serviceDestinationLink.destNode;
+}
 /**
  * Main
  */
@@ -227,7 +249,11 @@ async function main() {
     mta.modules.forEach((module) => {
         const newNode = {
             name: module.name,
-            additionalInfo: { category: categories.module, type: module.type },
+            additionalInfo: {
+                category: categories.module,
+                type: module.type,
+                module,
+            },
         };
 
         newNode.type = getNodeType(newNode);
@@ -252,22 +278,40 @@ async function main() {
                 category: categories.resource,
                 type: resource.type,
                 service: resource.parameters.service,
+                resource,
             },
         };
 
         newNode.type = getNodeType(newNode);
 
+        newNode.link = [];
+
         mtaGraph.push(newNode);
         mtaGraph.linksIndex[newNode.name] = newNode;
     });
 
-    mtaGraph.forEach((sourceNode) => {
-        sourceNode.link?.forEach((link) => {
-            link.sourceNode = sourceNode;
+    mtaGraph.forEach((node) => {
+        node.link?.forEach((link) => {
+            link.sourceNode = node;
             link.destNode = mtaGraph.linksIndex[link.name];
 
             link.type = getLinkType(link);
         });
+    });
+
+    mtaGraph.forEach((node) => {
+        if (node.type === nodeType.deployer) {
+            node.additionalInfo.module?.parameters?.content?.instance?.destinations?.forEach(
+                (destination) => {
+                    const serviceDestinationNode =
+                        getServiceDestinationNode(node);
+
+                    serviceDestinationNode.link.push({
+                        name: destination.Name,
+                    });
+                }
+            );
+        }
     });
 
     render(mtaGraph);
