@@ -187,7 +187,7 @@ function getLinkType(link) {
         link.sourceNode.type === nodeType.dbDeployer &&
         link.destNode.type === nodeType.serviceHanaInstance
     ) {
-        return 'deploy to';
+        return 'deploy tables to';
     }
 
     if (
@@ -202,6 +202,13 @@ function getLinkType(link) {
         link.destNode.type === nodeType.serviceXsuaa
     ) {
         return 'deploy xsuaa';
+    }
+
+    if (
+        link.sourceNode.type === nodeType.deployer &&
+        link.destNode.type === nodeType.serviceHtml5Repo
+    ) {
+        return 'deploy apps';
     }
 
     return 'deploy';
