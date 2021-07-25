@@ -62,8 +62,8 @@ modules:
       - name: cap-template-html5-repo-runtime
       - name: cap-template-portal
       - name: cap-template-theming
-      - name: cap-services-api
       - name: cap-application-logging
+      - name: cap-services-api
         group: destinations
         properties:
           name: srv_api
