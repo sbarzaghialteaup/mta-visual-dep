@@ -39,7 +39,8 @@ const linkType = {
     deployTablesTo: 'deploy tables to',
     createDestinationService: 'create destination service',
     useXsuaaService: 'use xsuaa service',
-    defineDestination: 'defineDestination',
+    defineDestinationInService: 'define destination\nat destination level',
+    defineDestinationInSubaccount: 'define destination\nat subaccount level',
     pointToService: 'point to service',
     pointToUrl: 'point to url',
     useAppsFrom: 'use apps from',
@@ -385,8 +386,8 @@ function getServiceDestinationNode(node) {
 }
 
 function lookForDeployedDestinations(node, mtaGraph) {
-    node.additionalInfo.module?.parameters?.content?.instance?.destinations?.forEach(
-        (destination) => {
+    function addNodeForDestination(useLinkType) {
+        return (destination) => {
             const newDestinationNode = {
                 name: destination.Name,
                 type: nodeType.destination,
@@ -403,7 +404,7 @@ function lookForDeployedDestinations(node, mtaGraph) {
             const serviceDestinationNode = getServiceDestinationNode(node);
 
             serviceDestinationNode.link.push({
-                type: linkType.defineDestination,
+                type: useLinkType,
                 name: destination.Name,
             });
 
@@ -415,7 +416,15 @@ function lookForDeployedDestinations(node, mtaGraph) {
                 node: pointToNode,
                 type: linkType.pointToService,
             });
-        }
+        };
+    }
+
+    node.additionalInfo.module?.parameters?.content?.instance?.destinations?.forEach(
+        addNodeForDestination(linkType.defineDestinationInService)
+    );
+
+    node.additionalInfo.module?.parameters?.content?.subaccount?.destinations?.forEach(
+        addNodeForDestination(linkType.defineDestinationInSubaccount)
     );
 }
 
@@ -627,7 +636,7 @@ function extractDestinationsFromResources(mtaGraph) {
                     mtaGraph.push(newDestinationNode);
 
                     node.link.push({
-                        type: linkType.defineDestination,
+                        type: linkType.defineDestinationInService,
                         name: destination.Name,
                     });
 
@@ -665,7 +674,8 @@ function setClusterToLinks(mtaGraph) {
 
             if (
                 link.type === linkType.createDestinationService ||
-                link.type === linkType.defineDestination ||
+                link.type === linkType.defineDestinationInService ||
+                link.type === linkType.defineDestinationInSubaccount ||
                 link.type === linkType.pointToService ||
                 link.type === linkType.pointToUrl
             ) {
