@@ -33,7 +33,7 @@ const linkType = {
     readWrite: 'read/write',
     deployTablesTo: 'deploy tables to',
     createDestinationService: 'create destination service',
-    createXsuaaService: 'create xsuaa service',
+    useXsuaaService: 'use xsuaa service',
     defineDestination: 'defineDestination',
     pointToService: 'point to service',
     pointToUrl: 'point to url',
@@ -266,11 +266,8 @@ function getLinkType(link) {
         return linkType.createDestinationService;
     }
 
-    if (
-        link.sourceNode.type === nodeType.deployer &&
-        link.destNode.type === nodeType.serviceXsuaa
-    ) {
-        return linkType.createXsuaaService;
+    if (link.destNode.type === nodeType.serviceXsuaa) {
+        return linkType.useXsuaaService;
     }
 
     if (
@@ -280,7 +277,7 @@ function getLinkType(link) {
         return linkType.deployAppsTo;
     }
 
-    return 'deploy';
+    return 'use';
 }
 
 function getServiceDestinationNode(node) {
@@ -379,6 +376,8 @@ function extractModules(mta, mtaGraph) {
 function extractPropertySets(mtaGraph) {
     mtaGraph.forEach((moduleNode) => {
         moduleNode.additionalInfo.module.provides?.forEach((provide) => {
+            mtaGraph.propertySets[provide.name] = moduleNode;
+
             Object.entries(provide.properties).forEach(([key, value]) => {
                 const newPropertyNode = {
                     type: nodeType.property,
@@ -437,6 +436,10 @@ function setLinksType(mtaGraph) {
         node.link
             ?.filter((link) => !link.type)
             .forEach((link) => {
+                if (mtaGraph.propertySets[link.name]) {
+                    return;
+                }
+
                 link.sourceNode = node;
                 link.destNode = mtaGraph.linksIndex[link.name];
 
@@ -543,6 +546,7 @@ async function main() {
 
     mtaGraph.linksIndex = [];
     mtaGraph.indexServiceName = [];
+    mtaGraph.propertySets = [];
 
     const file = fs.readFileSync('./mta.yaml', 'utf8');
 
