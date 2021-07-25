@@ -273,6 +273,53 @@ function getServiceDestinationNode(node) {
 
     return serviceDestinationLink.destNode;
 }
+
+function handleDeployDestination(node, mtaGraph) {
+    node.additionalInfo.module?.parameters?.content?.instance?.destinations?.forEach(
+        (destination) => {
+            const newDestinationNode = {
+                name: destination.Name,
+                type: nodeType.destination,
+                additionalInfo: {
+                    category: categories.destination,
+                    destination,
+                },
+            };
+
+            newDestinationNode.link = [];
+
+            mtaGraph.push(newDestinationNode);
+
+            const serviceDestinationNode = getServiceDestinationNode(node);
+
+            serviceDestinationNode.link.push({
+                type: linkType.defineDestination,
+                name: destination.Name,
+            });
+
+            const pointToNode =
+                mtaGraph.indexServiceName[destination.ServiceInstanceName];
+
+            newDestinationNode.link.push({
+                name: pointToNode.name,
+                node: pointToNode,
+                type: linkType.pointToService,
+            });
+        }
+    );
+}
+
+function handleDeployApp(node) {
+    node.additionalInfo.module?.['build-parameters']?.requires?.forEach(
+        (destination) => {
+            node.link.push({
+                type: linkType.deployApp,
+                name: destination.name,
+            });
+        }
+    );
+}
+
 /**
  * Main
  */
@@ -390,41 +437,8 @@ async function main() {
 
     mtaGraph.forEach((node) => {
         if (node.type === nodeType.deployer) {
-            node.additionalInfo.module?.parameters?.content?.instance?.destinations?.forEach(
-                (destination) => {
-                    const newDestinationNode = {
-                        name: destination.Name,
-                        type: nodeType.destination,
-                        additionalInfo: {
-                            category: categories.destination,
-                            destination,
-                        },
-                    };
-
-                    newDestinationNode.link = [];
-
-                    mtaGraph.push(newDestinationNode);
-
-                    const serviceDestinationNode =
-                        getServiceDestinationNode(node);
-
-                    serviceDestinationNode.link.push({
-                        type: linkType.defineDestination,
-                        name: destination.Name,
-                    });
-
-                    const pointToNode =
-                        mtaGraph.indexServiceName[
-                            destination.ServiceInstanceName
-                        ];
-
-                    newDestinationNode.link.push({
-                        name: pointToNode.name,
-                        node: pointToNode,
-                        type: linkType.pointToService,
-                    });
-                }
-            );
+            handleDeployDestination(node, mtaGraph);
+            handleDeployApp(node);
         }
     });
 
