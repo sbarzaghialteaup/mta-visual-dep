@@ -158,7 +158,7 @@ function renderPortalDeployer(node) {
     return nodeAttributes;
 }
 
-function renderNode(node) {
+function getNodeAttributes(node) {
     let attributes = {};
 
     if (node.type === nodeType.nodejs) {
@@ -207,7 +207,7 @@ async function render(mtaGraph) {
     const clusters = [];
 
     mtaGraph.forEach((node) => {
-        mtaGraphVis.addNode(node.name, renderNode(node));
+        mtaGraphVis.addNode(node.name, getNodeAttributes(node));
 
         node.link?.forEach((link) => {
             let cluster = mtaGraphVis;
