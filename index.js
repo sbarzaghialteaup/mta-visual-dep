@@ -10,6 +10,7 @@ const categories = {
     resource: 'resource',
     destination: 'destination',
     property: 'property',
+    enviromentVariable: 'enviromentVariable',
 };
 
 const nodeType = {
@@ -26,6 +27,7 @@ const nodeType = {
     destination: 'DESTINATION',
     destinationURL: 'DESTINATION URL',
     property: 'PROPERTY',
+    enviromentVariable: 'ENV VARIABLE',
     other: 'OTHER',
 };
 
@@ -41,6 +43,7 @@ const linkType = {
     deployApp: 'deploy app',
     logTo: 'log to',
     defineMtaProperty: 'define MTA property',
+    defineEnvVariable: 'define enviroment\nvariable',
 };
 
 function renderNodeJS(node) {
@@ -363,12 +366,6 @@ function extractModules(mta, mtaGraph) {
 
         newNode.link = [];
 
-        module.requires?.forEach((require) => {
-            newNode.link.push({
-                name: require.name,
-            });
-        });
-
         mtaGraph.push(newNode);
     });
 }
@@ -401,6 +398,55 @@ function extractPropertySets(mtaGraph) {
             });
         });
     });
+}
+
+function extractModulesRequirements(mtaGraph) {
+    mtaGraph
+        .filter((node) => node.additionalInfo.category === categories.module)
+        .forEach((moduleNode) => {
+            moduleNode.additionalInfo.module.requires?.forEach((require) => {
+                if (mtaGraph.propertySets[require.name]) {
+                    return;
+                }
+
+                moduleNode.link.push({
+                    name: require.name,
+                });
+            });
+        });
+}
+
+function extractEnviromentVariables(mtaGraph) {
+    mtaGraph
+        .filter((node) => node.additionalInfo.category === categories.module)
+        .forEach((moduleNode) => {
+            moduleNode.additionalInfo.module.requires?.forEach((require) => {
+                if (!mtaGraph.propertySets[require.name]) {
+                    return;
+                }
+
+                const newEnvVariableNode = {
+                    type: nodeType.enviromentVariable,
+                    name: require.group,
+                    value: require.properties,
+                    additionalInfo: {
+                        category: categories.enviromentVariable,
+                    },
+                };
+
+                newEnvVariableNode.link = [];
+
+                mtaGraph.push(newEnvVariableNode);
+
+                mtaGraph.linksIndex[newEnvVariableNode.name] =
+                    newEnvVariableNode;
+
+                moduleNode.link.push({
+                    type: linkType.defineEnvVariable,
+                    name: newEnvVariableNode.name,
+                });
+            });
+        });
 }
 
 function extractResources(mta, mtaGraph) {
@@ -555,6 +601,10 @@ async function main() {
     extractModules(mta, mtaGraph);
 
     extractPropertySets(mtaGraph);
+
+    extractModulesRequirements(mtaGraph);
+
+    extractEnviromentVariables(mtaGraph);
 
     extractResources(mta, mtaGraph);
 
