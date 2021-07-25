@@ -1,138 +1,414 @@
-_schema-version: "3.1"
-ID: test-bas
-description: A simple CAP project.
-version: 1.0.0
-modules:
-  - name: test-bas-srv
-    type: nodejs
-    path: gen/srv
-    requires:
-      - name: test-bas-db
-    provides:
-      - name: srv-api
-        properties:
-          srv-url: ${default-url}
-    parameters:
-      buildpack: nodejs_buildpack
-      memory: 128MB
-  - name: test-bas-db-deployer
-    type: hdb
-    path: gen/db
-    requires:
-      - name: test-bas-db
-    parameters:
-      buildpack: nodejs_buildpack
-      memory: 128MB
-  - name: test-bas-destination-content
-    type: com.sap.application.content
-    requires:
-      - name: test-bas-destination-service
-        parameters:
-          content-target: true
-      - name: uaa_test-bas
-        parameters:
-          service-key:
-            name: uaa_test-bas-key
-    parameters:
-      content:
-        instance:
-          destinations:
-            - Name: sambusinesssolution_test_bas_html_repo_host
-              ServiceInstanceName: test-bas-html5-app-host-service
-              ServiceKeyName: test-bas_html_repo_host-key
-              sap.cloud.service: sambusinesssolution
-            - Authentication: OAuth2UserTokenExchange
-              Name: sambusinesssolution_uaa_test_bas
-              ServiceInstanceName: test-bas-xsuaa-service
-              ServiceKeyName: uaa_test-bas-key
-              sap.cloud.service: sambusinesssolution
-          existing_destinations_policy: ignore
-    build-parameters:
-      no-source: true
-  - name: project3
-    type: html5
-    path: app/project3
-    build-parameters:
-      build-result: dist
-      builder: custom
-      commands:
-        - npm install
-        - npm run build:cf
-      supported-platforms: []
-  - name: test-bas_ui_deployer
-    type: com.sap.application.content
-    path: app
-    requires:
-      - name: test-bas_html_repo_host
-        parameters:
-          content-target: true
-    build-parameters:
-      build-result: resources
-      requires:
-        - artifacts:
-            - project3.zip
-          name: project3
-          target-path: resources/
-        - artifacts:
-            - cavolo-content.zip
-          name: cavolo
-          target-path: resources/
-  - name: cavolo
-    type: html5
-    path: app/cavolo
-    build-parameters:
-      build-result: dist
-      builder: custom
-      commands:
-        - npm run build
-      supported-platforms: []
-resources:
-  - name: test-bas-db
-    type: com.sap.xs.hdi-container
-    parameters:
-      service: hana
-      service-plan: hdi-shared
-    properties:
-      hdi-service-name: ${service-name}
-  - name: test-bas-destination-service
-    type: org.cloudfoundry.managed-service
-    parameters:
-      config:
-        HTML5Runtime_enabled: true
-        init_data:
-          instance:
-            destinations:
-              - Authentication: NoAuthentication
-                Name: ui5
-                ProxyType: Internet
-                Type: HTTP
-                URL: https://ui5.sap.com
-            existing_destinations_policy: update
-        version: 1.0.0
-      service: destination
-      service-name: test-bas-destination-service
-      service-plan: lite
-    requires:
-      - name: srv-api
-  - name: test-bas_html_repo_host
-    type: org.cloudfoundry.managed-service
-    parameters:
-      service: html5-apps-repo
-      service-name: test-bas-html5-app-host-service
-      service-plan: app-host
-  - name: uaa_test-bas
-    type: org.cloudfoundry.managed-service
-    parameters:
-      path: ./xs-security.json
-      service: xsuaa
-      service-name: test-bas-xsuaa-service
-      service-plan: application
+ID: solutions-portal
+_schema-version: 3.2.0
+description: Solutions Portal
+version: 1.0.67-33c817ab048257a52d41ac0bd5448080adf1d7b0
 parameters:
-  deploy_mode: html5-repo
   enable-parallel-deployments: true
 build-parameters:
   before-all:
     - builder: custom
       commands:
         - npm install --production
-        - cds build --production
+        - npx -p @sap/cds-dk cds build --production
+#
+# ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀ #
+#    MODULES                                 #
+# ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄ #
+#
+modules:
+  #
+  #   ╔═══════════════════════════════════════╗   #
+  #   ║               CAP SERVICE             ║   #
+  #   ╚═══════════════════════════════════════╝   #
+  #
+  - name: cap-services
+    type: nodejs
+    path: gen/srv
+    parameters:
+      disk-quota: 512M
+      memory: 256M
+    build-parameters:
+      ignore: ["default-env.json", "node_modules/"]
+      builder: custom
+      commands: []
+    properties:
+      EXIT: 1
+    requires:
+      - name: cap-template-uaa
+      - name: cap-template-hanadb
+      - name: cap-application-logging
+    provides:
+      - name: cap-services-api
+        properties:
+          srv_api: ${default-url}
+  #
+  #   ╔═══════════════════════════════════════╗   #
+  #   ║               APP ROUTER              ║   #
+  #   ╚═══════════════════════════════════════╝   #
+  #
+  - name: approuter
+    type: nodejs
+    path: cloud-foundry/approuter
+    parameters:
+      disk-quota: 512M
+      memory: 128M
+    build-parameters:
+      ignore: ["default-env.json", "node_modules/"]
+      builder: custom
+      commands: []
+    requires:
+      - name: cap-template-destination
+      - name: cap-template-uaa
+      - name: cap-template-html5-repo-runtime
+      - name: cap-template-portal
+      - name: cap-template-theming
+      - name: cap-services-api
+      - name: cap-application-logging
+        group: destinations
+        properties:
+          name: srv_api
+          url: ~{srv_api}
+          forwardAuthToken: true
+  #
+  #   ╔═══════════════════════════════════════╗   #
+  #   ║            HANA DB DEPLOYER           ║   #
+  #   ╚═══════════════════════════════════════╝   #
+  #
+  - name: cap-template-hanadb-deployer
+    type: hdb
+    path: gen/db
+    parameters:
+      disk-quota: 512M
+      memory: 128M
+    build-parameters:
+      ignore: ["default-env.json", "node_modules/"]
+      builder: custom
+      commands: []
+    requires:
+      - name: cap-template-uaa
+      - name: cap-template-hanadb
+      - name: cap-application-logging
+  #
+  #   ╔═══════════════════════════════════════╗   #
+  #   ║               HTML5 APPS              ║   #
+  #   ╚═══════════════════════════════════════╝   #
+  #
+  - name: ui_datacenters
+    type: html5
+    path: app/com.alteaup.solutions.datacenters
+    build-parameters:
+      builder: custom
+      commands:
+        - npm run build
+      supported-platforms: []
+      build-result: dist
+  - name: ui_employees
+    type: html5
+    path: app/com.alteaup.solutions.employees
+    build-parameters:
+      builder: custom
+      commands:
+        - npm run build
+      supported-platforms: []
+      build-result: dist
+  - name: ui_systems
+    type: html5
+    path: app/com.alteaup.solutions.systems
+    build-parameters:
+      builder: custom
+      commands:
+        - npm run build
+      supported-platforms: []
+      build-result: dist
+  - name: ui_products
+    type: html5
+    path: app/com.alteaup.solutions.products
+    build-parameters:
+      builder: custom
+      commands:
+        - npm run build
+      supported-platforms: []
+      build-result: dist
+  - name: ui_servers
+    type: html5
+    path: app/com.alteaup.solutions.servers
+    build-parameters:
+      builder: custom
+      commands:
+        - npm run build
+      supported-platforms: []
+      build-result: dist
+  - name: ui_solutionsalteaup
+    type: html5
+    path: app/com.alteaup.solutions.solutionsalteaup
+    build-parameters:
+      builder: custom
+      commands:
+        - npm run build
+      supported-platforms: []
+      build-result: dist
+  - name: ui_typologies
+    type: html5
+    path: app/com.alteaup.solutions.typologies
+    build-parameters:
+      builder: custom
+      commands:
+        - npm run build
+      supported-platforms: []
+      build-result: dist
+  - name: ui_systemstatus
+    type: html5
+    path: app/com.alteaup.solutions.systemstatus
+    build-parameters:
+      builder: custom
+      commands:
+        - npm run build
+      supported-platforms: []
+      build-result: dist
+  - name: ui_futurestatus
+    type: html5
+    path: app/com.alteaup.solutions.futurestatus
+    build-parameters:
+      builder: custom
+      commands:
+        - npm run build
+      supported-platforms: []
+      build-result: dist
+  - name: ui_accessrights
+    type: html5
+    path: app/com.alteaup.solutions.accessrights
+    build-parameters:
+      builder: custom
+      commands:
+        - npm run build
+      supported-platforms: []
+      build-result: dist
+  - name: ui_poweronrules
+    type: html5
+    path: app/com.alteaup.solutions.poweronrules
+    build-parameters:
+      builder: custom
+      commands:
+        - npm run build
+      supported-platforms: []
+      build-result: dist
+  - name: ui_customers
+    type: html5
+    path: app/com.alteaup.solutions.customers
+    build-parameters:
+      builder: custom
+      commands:
+        - npm run build
+      supported-platforms: []
+      build-result: dist
+  - name: ui_ideas
+    type: html5
+    path: app/com.alteaup.solutions.ideas
+    build-parameters:
+      builder: custom
+      commands:
+        - npm run build
+      supported-platforms: []
+      build-result: dist
+  - name: ui_sectors
+    type: html5
+    path: app/com.alteaup.solutions.sectors
+    build-parameters:
+      builder: custom
+      commands:
+        - npm run build
+      supported-platforms: []
+      build-result: dist
+  - name: ui_businessrequirements
+    type: html5
+    path: app/com.alteaup.solutions.BusinessRequirements
+    build-parameters:
+      builder: custom
+      commands:
+        - npm run build
+      supported-platforms: []
+      build-result: dist
+  #
+  #   ╔═══════════════════════════════════════╗   #
+  #   ║            HTML5 DEPLOYER             ║   #
+  #   ╚═══════════════════════════════════════╝   #
+  #
+  - name: cap-template-html-deployer
+    type: com.sap.application.content
+    path: cloud-foundry/html5-deployer
+    requires:
+      - name: cap-template-html5-repo-host
+        parameters:
+          content-target: true
+    build-parameters:
+      build-result: resources
+      requires:
+        - name: ui_datacenters
+          artifacts:
+            - ./uimodule*.zip
+          target-path: resources/
+        - name: ui_employees
+          artifacts:
+            - ./uimodule*.zip
+          target-path: resources/
+        - name: ui_systems
+          artifacts:
+            - ./uimodule*.zip
+          target-path: resources/
+        - name: ui_products
+          artifacts:
+            - ./uimodule*.zip
+          target-path: resources/
+        - name: ui_servers
+          artifacts:
+            - ./uimodule*.zip
+          target-path: resources/
+        - name: ui_solutionsalteaup
+          artifacts:
+            - ./uimodule*.zip
+          target-path: resources/
+        - name: ui_typologies
+          artifacts:
+            - ./uimodule*.zip
+          target-path: resources/
+        - name: ui_systemstatus
+          artifacts:
+            - ./uimodule*.zip
+          target-path: resources/
+        - name: ui_futurestatus
+          artifacts:
+            - ./uimodule*.zip
+          target-path: resources/
+        - name: ui_accessrights
+          artifacts:
+            - ./uimodule*.zip
+          target-path: resources/
+        - name: ui_poweronrules
+          artifacts:
+            - ./uimodule*.zip
+          target-path: resources/
+        - name: ui_customers
+          artifacts:
+            - ./uimodule*.zip
+          target-path: resources/
+        - name: ui_ideas
+          artifacts:
+            - ./uimodule*.zip
+          target-path: resources/
+        - name: ui_sectors
+          artifacts:
+            - ./uimodule*.zip
+          target-path: resources/
+        - name: ui_businessrequirements
+          artifacts:
+            - ./uimodule*.zip
+          target-path: resources/
+  #
+  #   ╔═══════════════════════════════════════╗   #
+  #   ║            PORTAL DEPLOYER            ║   #
+  #   ╚═══════════════════════════════════════╝   #
+  #
+  - name: cap-template-portal-deployer
+    type: com.sap.application.content
+    path: cloud-foundry/portal-deployer
+    requires:
+      - name: cap-template-portal
+        parameters:
+          content-target: true
+          service-key:
+            name: content-deploy-key
+            config:
+              content-endpoint: developer
+      - name: cap-template-html5-repo-host
+      - name: cap-template-uaa
+#
+# ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀ #
+#     RESOURCES                              #
+# ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄ #
+#
+resources:
+  #
+  #   ┌─────────────────────────────────────┐   #
+  #   │            DESTINATIONS             │   #
+  #   └─────────────────────────────────────┘   #
+  #
+  - name: cap-template-destination
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service-plan: lite
+      service: destination
+  #
+  #   ┌─────────────────────────────────────┐   #
+  #   │                XSUAA                │   #
+  #   └─────────────────────────────────────┘   #
+  #
+  - name: cap-template-uaa
+    type: org.cloudfoundry.managed-service
+    parameters:
+      path: cloud-foundry/xsuaa/xs-security.json
+      service-plan: application
+      service: xsuaa
+  #
+  #   ┌─────────────────────────────────────┐   #
+  #   │            HTML5 RUNTIME            │   #
+  #   └─────────────────────────────────────┘   #
+  #
+  - name: cap-template-html5-repo-runtime
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service-plan: app-runtime
+      service: html5-apps-repo
+  #
+  #   ┌─────────────────────────────────────┐   #
+  #   │              HTML5 HOST             │   #
+  #   └─────────────────────────────────────┘   #
+  #
+  - name: cap-template-html5-repo-host
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service-plan: app-host
+      service: html5-apps-repo
+      config:
+        sizeLimit: 1
+  #
+  #   ┌─────────────────────────────────────┐   #
+  #   │            PORTAL SERVICE           │   #
+  #   └─────────────────────────────────────┘   #
+  #
+  - name: cap-template-portal
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service-plan: standard
+      service: portal
+  #
+  #   ┌─────────────────────────────────────┐   #
+  #   │               HANA DB               │   #
+  #   └─────────────────────────────────────┘   #
+  #
+  - name: cap-template-hanadb
+    type: com.sap.xs.hdi-container
+    parameters:
+      service: hana
+      service-plan: hdi-shared
+    properties:
+      hdi-service-name: ${service-name}
+  #
+  #   ┌─────────────────────────────────────┐   #
+  #   │           UI THEME DESIGNER         │   #
+  #   └─────────────────────────────────────┘   #
+  #
+  - name: cap-template-theming
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: theming
+      service-plan: standard
+  #
+  #   ┌─────────────────────────────────────┐   #
+  #   │         APPLICATION LOGGING         │   #
+  #   └─────────────────────────────────────┘   #
+  #
+  - name: cap-application-logging
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: application-logs
+      service-plan: lite
