@@ -3,6 +3,7 @@ const fs = require('fs');
 const process = require('process');
 const YAML = require('yaml');
 const graphviz = require('graphviz');
+const { exit } = require('process');
 
 const categories = {
     module: 'module',
@@ -226,9 +227,6 @@ function getNodeType(nodeInfo) {
 }
 
 function getLinkType(link) {
-    if (!link.destNode) {
-        console.log('come mai?');
-    }
     if (link.destNode.type === nodeType.serviceApplicationLog) {
         return linkType.logTo;
     }
@@ -397,6 +395,12 @@ function setLinksType(mtaGraph) {
             link.sourceNode = node;
             link.destNode = mtaGraph.linksIndex[link.name];
 
+            if (!link.destNode) {
+                console.error(
+                    `Node ${link.sourceNode.name} require link to ${link.name} but ${link.name} cannot be resolved`
+                );
+                exit(1);
+            }
             link.type = getLinkType(link);
         });
     });
