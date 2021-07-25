@@ -402,31 +402,16 @@ function setLinksType(mtaGraph) {
     });
 }
 
-/**
- * Main
- */
-async function main() {
-    const mtaGraph = [];
-    mtaGraph.linksIndex = [];
-    mtaGraph.indexServiceName = [];
-
-    const file = fs.readFileSync('./mta.yaml', 'utf8');
-
-    const mta = YAML.parse(file);
-
-    extractModules(mta, mtaGraph);
-
-    extractResources(mta, mtaGraph);
-
-    setLinksType(mtaGraph);
-
+function extractDestinationsFromModules(mtaGraph) {
     mtaGraph.forEach((node) => {
         if (node.type === nodeType.deployer) {
             lookForDeployedDestinations(node, mtaGraph);
             lookForDeployedApps(node);
         }
     });
+}
 
+function extractDestinationsFromResources(mtaGraph) {
     mtaGraph
         .filter((node) => node.additionalInfo.category === categories.resource)
         .forEach((node) => {
@@ -470,7 +455,9 @@ async function main() {
                 }
             );
         });
+}
 
+function setClusterToLinks(mtaGraph) {
     mtaGraph.forEach((node) => {
         node.link?.forEach((link) => {
             if (
@@ -497,10 +484,36 @@ async function main() {
             }
         });
     });
+}
+
+/**
+ * Main
+ */
+async function main() {
+    const mtaGraph = [];
+
+    mtaGraph.linksIndex = [];
+    mtaGraph.indexServiceName = [];
+
+    const file = fs.readFileSync('./mta.yaml', 'utf8');
+
+    const mta = YAML.parse(file);
+
+    extractModules(mta, mtaGraph);
+
+    extractResources(mta, mtaGraph);
+
+    setLinksType(mtaGraph);
+
+    extractDestinationsFromModules(mtaGraph);
+
+    extractDestinationsFromResources(mtaGraph);
+
+    setClusterToLinks(mtaGraph);
 
     render(mtaGraph);
 }
 
 main();
 
-console.log('updated');
+console.log('updated ' + new Date());
