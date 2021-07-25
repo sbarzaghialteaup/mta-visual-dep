@@ -12,6 +12,7 @@ const categories = {
 
 const nodeType = {
     nodejs: 'CAP SERVICE',
+    approuter: 'APPROUTER',
     dbDeployer: 'DB DEPLOYER',
     deployer: 'DEPLOYER',
     html5: 'APP HTML5',
@@ -19,8 +20,10 @@ const nodeType = {
     serviceHtml5Repo: 'HTML5 REPOSITORY',
     serviceXsuaa: 'XSUAA',
     serviceDestination: 'SERVICE DESTINATION',
+    serviceApplicationLog: 'SERVICE APPLICATION LOG',
     destination: 'DESTINATION',
     destinationURL: 'DESTINATION URL',
+    other: 'OTHER',
 };
 
 const linkType = {
@@ -33,6 +36,7 @@ const linkType = {
     pointToUrl: 'point to url',
     deployAppsTo: 'deploy apps to',
     deployApp: 'deploy app',
+    logTo: 'log to',
 };
 
 function renderNodeJS(node) {
@@ -176,6 +180,12 @@ async function render(mtaGraph) {
 
 function getNodeType(nodeInfo) {
     if (nodeInfo.additionalInfo.category === categories.module) {
+        if (
+            nodeInfo.additionalInfo.type === 'nodejs' &&
+            nodeInfo.additionalInfo.module.path.search('approuter') >= 0
+        ) {
+            return nodeType.approuter;
+        }
         if (nodeInfo.additionalInfo.type === 'nodejs') {
             return nodeType.nodejs;
         }
@@ -206,6 +216,9 @@ function getNodeType(nodeInfo) {
             if (nodeInfo.additionalInfo.service === 'destination') {
                 return nodeType.serviceDestination;
             }
+            if (nodeInfo.additionalInfo.service === 'application-logs') {
+                return nodeType.serviceApplicationLog;
+            }
         }
     }
 
@@ -213,6 +226,12 @@ function getNodeType(nodeInfo) {
 }
 
 function getLinkType(link) {
+    if (!link.destNode) {
+        console.log('come mai?');
+    }
+    if (link.destNode.type === nodeType.serviceApplicationLog) {
+        return linkType.logTo;
+    }
     if (
         link.sourceNode.type === nodeType.nodejs &&
         link.destNode.type === nodeType.serviceHanaInstance
@@ -273,7 +292,7 @@ function getServiceDestinationNode(node) {
     return serviceDestinationLink.destNode;
 }
 
-function handleDeployDestination(node, mtaGraph) {
+function lookForDeployedDestinations(node, mtaGraph) {
     node.additionalInfo.module?.parameters?.content?.instance?.destinations?.forEach(
         (destination) => {
             const newDestinationNode = {
@@ -308,7 +327,7 @@ function handleDeployDestination(node, mtaGraph) {
     );
 }
 
-function handleDeployApp(node) {
+function lookForDeployedApps(node) {
     node.additionalInfo.module?.['build-parameters']?.requires?.forEach(
         (destination) => {
             node.link.push({
@@ -319,18 +338,7 @@ function handleDeployApp(node) {
     );
 }
 
-/**
- * Main
- */
-async function main() {
-    const mtaGraph = [];
-    mtaGraph.linksIndex = [];
-    mtaGraph.indexServiceName = [];
-
-    const file = fs.readFileSync('./mta.yaml', 'utf8');
-
-    const mta = YAML.parse(file);
-
+function extractModules(mta, mtaGraph) {
     mta.modules.forEach((module) => {
         const newNode = {
             name: module.name,
@@ -353,7 +361,9 @@ async function main() {
 
         mtaGraph.push(newNode);
     });
+}
 
+function extractResources(mta, mtaGraph) {
     mta.resources.forEach((resource) => {
         const newNode = {
             name: resource.name,
@@ -379,7 +389,9 @@ async function main() {
             ] = newNode;
         }
     });
+}
 
+function setLinksType(mtaGraph) {
     mtaGraph.forEach((node) => {
         node.link?.forEach((link) => {
             link.sourceNode = node;
@@ -388,11 +400,30 @@ async function main() {
             link.type = getLinkType(link);
         });
     });
+}
+
+/**
+ * Main
+ */
+async function main() {
+    const mtaGraph = [];
+    mtaGraph.linksIndex = [];
+    mtaGraph.indexServiceName = [];
+
+    const file = fs.readFileSync('./mta.yaml', 'utf8');
+
+    const mta = YAML.parse(file);
+
+    extractModules(mta, mtaGraph);
+
+    extractResources(mta, mtaGraph);
+
+    setLinksType(mtaGraph);
 
     mtaGraph.forEach((node) => {
         if (node.type === nodeType.deployer) {
-            handleDeployDestination(node, mtaGraph);
-            handleDeployApp(node);
+            lookForDeployedDestinations(node, mtaGraph);
+            lookForDeployedApps(node);
         }
     });
 
