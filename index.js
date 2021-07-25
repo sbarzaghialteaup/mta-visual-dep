@@ -137,12 +137,11 @@ function renderNode(node) {
         attributes = renderDestination(node);
     }
 
-    console.log(attributes);
     return attributes;
 }
 
 async function render(mtaGraph) {
-    const mtaGraphVis = graphviz.graph('MTA');
+    const mtaGraphVis = graphviz.digraph('MTA');
     const clusters = [];
 
     mtaGraph.forEach((node) => {
@@ -325,6 +324,8 @@ function handleDeployApp(node) {
  */
 async function main() {
     const mtaGraph = [];
+    mtaGraph.linksIndex = [];
+    mtaGraph.indexServiceName = [];
 
     const file = fs.readFileSync('./mta.yaml', 'utf8');
 
@@ -352,9 +353,6 @@ async function main() {
 
         mtaGraph.push(newNode);
     });
-
-    mtaGraph.linksIndex = [];
-    mtaGraph.indexServiceName = [];
 
     mta.resources.forEach((resource) => {
         const newNode = {
@@ -389,6 +387,13 @@ async function main() {
 
             link.type = getLinkType(link);
         });
+    });
+
+    mtaGraph.forEach((node) => {
+        if (node.type === nodeType.deployer) {
+            handleDeployDestination(node, mtaGraph);
+            handleDeployApp(node);
+        }
     });
 
     mtaGraph
@@ -436,13 +441,6 @@ async function main() {
         });
 
     mtaGraph.forEach((node) => {
-        if (node.type === nodeType.deployer) {
-            handleDeployDestination(node, mtaGraph);
-            handleDeployApp(node);
-        }
-    });
-
-    mtaGraph.forEach((node) => {
         node.link?.forEach((link) => {
             if (
                 link.type === linkType.deployTablesTo ||
@@ -473,3 +471,5 @@ async function main() {
 }
 
 main();
+
+console.log('updated');
