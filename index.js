@@ -190,6 +190,18 @@ function renderNode(node) {
     return attributes;
 }
 
+function getEdgeColor(link) {
+    const colorMap = [];
+
+    colorMap[linkType.deployTablesTo] = 'orange';
+    colorMap[linkType.readWrite] = 'orange';
+    colorMap[linkType.deployApp] = 'green';
+    colorMap[linkType.defineMtaProperty] = 'grey';
+    colorMap[linkType.useMtaProperty] = 'grey';
+
+    return colorMap[link.type] ? colorMap[link.type] : 'black';
+}
+
 async function render(mtaGraph) {
     const mtaGraphVis = graphviz.digraph('MTA');
     const clusters = [];
@@ -213,9 +225,14 @@ async function render(mtaGraph) {
                 }
             }
 
-            cluster.addEdge(node.name, link.name, {
+            const e = cluster.addEdge(node.name, link.name, {
                 label: link.type,
             });
+
+            const color = getEdgeColor(link);
+
+            e.set('color', color);
+            e.set('fontcolor', color);
         });
     });
 
