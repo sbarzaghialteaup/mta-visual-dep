@@ -1,3 +1,4 @@
+/* eslint-disable no-plusplus */
 /* eslint-disable no-console */
 const fs = require('fs');
 const process = require('process');
@@ -44,6 +45,7 @@ const linkType = {
     logTo: 'log to',
     defineMtaProperty: 'define MTA property',
     defineEnvVariable: 'define enviroment\nvariable',
+    useMtaProperty: 'use MTA property',
 };
 
 function renderNodeJS(node) {
@@ -445,6 +447,25 @@ function extractEnviromentVariables(mtaGraph) {
                     type: linkType.defineEnvVariable,
                     name: newEnvVariableNode.name,
                 });
+
+                const propertiesValue = Object.values(require.properties);
+
+                for (let index = 0; index < propertiesValue.length; index++) {
+                    const value = propertiesValue[index];
+
+                    if (
+                        typeof value === 'string' &&
+                        value.substr(0, 2) === '~{'
+                    ) {
+                        const variableName = value.substr(2, value.length - 3);
+                        const nodeName = `${require.name}:${variableName}`;
+
+                        newEnvVariableNode.link.push({
+                            type: linkType.useMtaProperty,
+                            name: nodeName,
+                        });
+                    }
+                }
             });
         });
 }
