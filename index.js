@@ -158,6 +158,15 @@ function renderPortalDeployer(node) {
     return nodeAttributes;
 }
 
+function renderApprouter(node) {
+    const nodeAttributes = {
+        label: `\\n${node.type}\\n\\n${node.name}`,
+        shape: `box3d`,
+        color: `blue`,
+    };
+    return nodeAttributes;
+}
+
 function getNodeAttributes(node) {
     let attributes = {};
 
@@ -185,6 +194,8 @@ function getNodeAttributes(node) {
         attributes = renderProperty(node);
     } else if (node.type === nodeType.portalDeployer) {
         attributes = renderPortalDeployer(node);
+    } else if (node.type === nodeType.approuter) {
+        attributes = renderApprouter(node);
     }
 
     return attributes;
@@ -257,7 +268,7 @@ function getNodeType(nodeInfo) {
         }
         if (
             nodeInfo.additionalInfo.type === 'com.sap.application.content' &&
-            nodeInfo.additionalInfo.module.path.search('portal') >= 0
+            nodeInfo.additionalInfo.module.path?.search('portal') >= 0
         ) {
             return nodeType.portalDeployer;
         }
