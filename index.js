@@ -9,6 +9,7 @@ const categories = {
     module: 'module',
     resource: 'resource',
     destination: 'destination',
+    property: 'property',
 };
 
 const nodeType = {
@@ -24,6 +25,7 @@ const nodeType = {
     serviceApplicationLog: 'SERVICE APPLICATION LOG',
     destination: 'DESTINATION',
     destinationURL: 'DESTINATION URL',
+    property: 'PROPERTY',
     other: 'OTHER',
 };
 
@@ -38,6 +40,7 @@ const linkType = {
     deployAppsTo: 'deploy apps to',
     deployApp: 'deploy app',
     logTo: 'log to',
+    defineMtaProperty: 'define MTA property',
 };
 
 function renderNodeJS(node) {
@@ -119,6 +122,15 @@ function renderDestination(node) {
     return nodeAttributes;
 }
 
+function renderProperty(node) {
+    const nodeAttributes = {
+        label: `\\n${node.name}\n\n${node.value}`,
+        shape: `note`,
+        color: `grey`,
+    };
+    return nodeAttributes;
+}
+
 function renderNode(node) {
     let attributes = {};
 
@@ -140,6 +152,8 @@ function renderNode(node) {
         attributes = renderServiceXsuaa(node);
     } else if (node.type === nodeType.destination) {
         attributes = renderDestination(node);
+    } else if (node.type === nodeType.property) {
+        attributes = renderProperty(node);
     }
 
     return attributes;
@@ -230,6 +244,7 @@ function getLinkType(link) {
     if (link.destNode.type === nodeType.serviceApplicationLog) {
         return linkType.logTo;
     }
+
     if (
         link.sourceNode.type === nodeType.nodejs &&
         link.destNode.type === nodeType.serviceHanaInstance
@@ -361,6 +376,34 @@ function extractModules(mta, mtaGraph) {
     });
 }
 
+function extractPropertySets(mtaGraph) {
+    mtaGraph.forEach((moduleNode) => {
+        moduleNode.additionalInfo.module.provides?.forEach((provide) => {
+            Object.entries(provide.properties).forEach(([key, value]) => {
+                const newPropertyNode = {
+                    type: nodeType.property,
+                    name: `${provide.name}:${key}`,
+                    value,
+                    additionalInfo: {
+                        category: categories.property,
+                    },
+                };
+
+                newPropertyNode.link = [];
+
+                mtaGraph.push(newPropertyNode);
+
+                mtaGraph.linksIndex[newPropertyNode.name] = newPropertyNode;
+
+                moduleNode.link.push({
+                    type: linkType.defineMtaProperty,
+                    name: newPropertyNode.name,
+                });
+            });
+        });
+    });
+}
+
 function extractResources(mta, mtaGraph) {
     mta.resources.forEach((resource) => {
         const newNode = {
@@ -391,18 +434,20 @@ function extractResources(mta, mtaGraph) {
 
 function setLinksType(mtaGraph) {
     mtaGraph.forEach((node) => {
-        node.link?.forEach((link) => {
-            link.sourceNode = node;
-            link.destNode = mtaGraph.linksIndex[link.name];
+        node.link
+            ?.filter((link) => !link.type)
+            .forEach((link) => {
+                link.sourceNode = node;
+                link.destNode = mtaGraph.linksIndex[link.name];
 
-            if (!link.destNode) {
-                console.error(
-                    `Node ${link.sourceNode.name} require link to ${link.name} but ${link.name} cannot be resolved`
-                );
-                exit(1);
-            }
-            link.type = getLinkType(link);
-        });
+                if (!link.destNode) {
+                    console.error(
+                        `Node '${link.sourceNode.name}' require link to node '${link.name}' but node '${link.name}' cannot be resolved`
+                    );
+                    exit(1);
+                }
+                link.type = getLinkType(link);
+            });
     });
 }
 
@@ -504,6 +549,8 @@ async function main() {
     const mta = YAML.parse(file);
 
     extractModules(mta, mtaGraph);
+
+    extractPropertySets(mtaGraph);
 
     extractResources(mta, mtaGraph);
 
