@@ -49,13 +49,6 @@ modules:
           existing_destinations_policy: ignore
     build-parameters:
       no-source: true
-  - name: test-bas-app-content
-    type: com.sap.application.content
-    path: .
-    requires:
-      - name: test-bas_html_repo_host
-        parameters:
-          content-target: true
   - name: project3
     type: html5
     path: app/project3
