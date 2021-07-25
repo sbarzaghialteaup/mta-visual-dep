@@ -17,14 +17,16 @@ const categories = {
 const nodeType = {
     nodejs: 'CAP SERVICE',
     approuter: 'APPROUTER',
+    portalDeployer: 'PORTAL DEPLOYER',
     dbDeployer: 'DB DEPLOYER',
     deployer: 'DEPLOYER',
     html5: 'APP HTML5',
     serviceHanaInstance: 'HANA CLOUD',
     serviceHtml5Repo: 'HTML5 REPOSITORY',
-    serviceXsuaa: 'XSUAA',
+    serviceXsuaa: 'SERVICE XSUAA',
     serviceDestination: 'SERVICE DESTINATION',
     serviceApplicationLog: 'SERVICE APPLICATION LOG',
+    servicePortal: 'SERVICE PORTAL',
     destination: 'DESTINATION',
     destinationURL: 'DESTINATION URL',
     property: 'PROPERTY',
@@ -40,8 +42,10 @@ const linkType = {
     defineDestination: 'defineDestination',
     pointToService: 'point to service',
     pointToUrl: 'point to url',
+    useAppsFrom: 'use apps from',
     deployAppsTo: 'deploy apps to',
     deployApp: 'deploy app',
+    publishAppsTo: 'publish apps into',
     logTo: 'log to',
     defineMtaProperty: 'define MTA property',
     defineEnvVariable: 'define enviroment\nvariable',
@@ -118,6 +122,15 @@ function renderServiceXsuaa(node) {
     return nodeAttributes;
 }
 
+function renderServicePortal(node) {
+    const nodeAttributes = {
+        label: `{${node.type}|${node.name}}`,
+        shape: `record`,
+        color: `orange`,
+    };
+    return nodeAttributes;
+}
+
 function renderDestination(node) {
     const nodeAttributes = {
         label: `\\n\\n${node.name}`,
@@ -132,6 +145,15 @@ function renderProperty(node) {
         label: `\\n${node.name}\n\n${node.value}`,
         shape: `note`,
         color: `grey`,
+    };
+    return nodeAttributes;
+}
+
+function renderPortalDeployer(node) {
+    const nodeAttributes = {
+        label: `\\n${node.type}\\n\\n${node.name}`,
+        shape: `box3d`,
+        color: `blue`,
     };
     return nodeAttributes;
 }
@@ -155,10 +177,14 @@ function renderNode(node) {
         attributes = renderServiceDestination(node);
     } else if (node.type === nodeType.serviceXsuaa) {
         attributes = renderServiceXsuaa(node);
+    } else if (node.type === nodeType.servicePortal) {
+        attributes = renderServicePortal(node);
     } else if (node.type === nodeType.destination) {
         attributes = renderDestination(node);
     } else if (node.type === nodeType.property) {
         attributes = renderProperty(node);
+    } else if (node.type === nodeType.portalDeployer) {
+        attributes = renderPortalDeployer(node);
     }
 
     return attributes;
@@ -212,6 +238,12 @@ function getNodeType(nodeInfo) {
         if (nodeInfo.additionalInfo.type === 'hdb') {
             return nodeType.dbDeployer;
         }
+        if (
+            nodeInfo.additionalInfo.type === 'com.sap.application.content' &&
+            nodeInfo.additionalInfo.module.path.search('portal') >= 0
+        ) {
+            return nodeType.portalDeployer;
+        }
         if (nodeInfo.additionalInfo.type === 'com.sap.application.content') {
             return nodeType.deployer;
         }
@@ -238,6 +270,9 @@ function getNodeType(nodeInfo) {
             }
             if (nodeInfo.additionalInfo.service === 'application-logs') {
                 return nodeType.serviceApplicationLog;
+            }
+            if (nodeInfo.additionalInfo.service === 'portal') {
+                return nodeType.servicePortal;
             }
         }
     }
@@ -273,6 +308,20 @@ function getLinkType(link) {
 
     if (link.destNode.type === nodeType.serviceXsuaa) {
         return linkType.useXsuaaService;
+    }
+
+    if (
+        link.sourceNode.type === nodeType.portalDeployer &&
+        link.destNode.type === nodeType.serviceHtml5Repo
+    ) {
+        return linkType.useAppsFrom;
+    }
+
+    if (
+        link.sourceNode.type === nodeType.portalDeployer &&
+        link.destNode.type === nodeType.servicePortal
+    ) {
+        return linkType.publishAppsTo;
     }
 
     if (
