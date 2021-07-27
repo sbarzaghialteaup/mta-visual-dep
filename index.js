@@ -27,6 +27,7 @@ const nodeType = {
     serviceDestination: 'SERVICE DESTINATION',
     serviceApplicationLog: 'SERVICE APPLICATION LOG',
     servicePortal: 'SERVICE PORTAL',
+    serviceWorkflow: 'SERVICE WORKFLOW',
     destination: 'DESTINATION',
     destinationURL: 'DESTINATION URL',
     property: 'PROPERTY',
@@ -132,6 +133,15 @@ function renderServicePortal(node) {
     return nodeAttributes;
 }
 
+function renderServiceWorkflow(node) {
+    const nodeAttributes = {
+        label: `{${node.type}|${node.name}}`,
+        shape: `record`,
+        color: `orange`,
+    };
+    return nodeAttributes;
+}
+
 function renderDestination(node) {
     const nodeAttributes = {
         label: `\\n\\n${node.name}`,
@@ -189,6 +199,8 @@ function getNodeAttributes(node) {
         attributes = renderServiceXsuaa(node);
     } else if (node.type === nodeType.servicePortal) {
         attributes = renderServicePortal(node);
+    } else if (node.type === nodeType.serviceWorkflow) {
+        attributes = renderServiceWorkflow(node);
     } else if (node.type === nodeType.destination) {
         attributes = renderDestination(node);
     } else if (node.type === nodeType.property) {
@@ -302,6 +314,17 @@ function getNodeType(nodeInfo) {
             }
             if (nodeInfo.additionalInfo.service === 'portal') {
                 return nodeType.servicePortal;
+            }
+            if (nodeInfo.additionalInfo.service === 'workflow') {
+                return nodeType.serviceWorkflow;
+            }
+        }
+
+        if (
+            nodeInfo.additionalInfo.type === 'org.cloudfoundry.existing-service'
+        ) {
+            if (nodeInfo.additionalInfo.service === 'workflow') {
+                return nodeType.serviceWorkflow;
             }
         }
     }
