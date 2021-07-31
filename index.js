@@ -522,6 +522,27 @@ function extractModulesRequirements(mtaGraph) {
 }
 
 function extractEnviromentVariables(mtaGraph) {
+    function extractLinksToProperties(require) {
+        const links = [];
+        const propertiesValue = Object.values(require.properties);
+
+        for (let index = 0; index < propertiesValue.length; index++) {
+            const value = propertiesValue[index];
+
+            if (typeof value === 'string' && value.substr(0, 2) === '~{') {
+                const variableName = value.substr(2, value.length - 3);
+                const nodeName = `${require.name}:${variableName}`;
+
+                links.push({
+                    type: linkType.useMtaProperty,
+                    name: nodeName,
+                });
+            }
+        }
+
+        return links;
+    }
+
     mtaGraph.nodes
         .filter((node) => node.additionalInfo.category === categories.module)
         .forEach((moduleNode) => {
@@ -546,24 +567,9 @@ function extractEnviromentVariables(mtaGraph) {
                     name: newEnvVariableNode.name,
                 });
 
-                const propertiesValue = Object.values(require.properties);
+                const propertiesLinks = extractLinksToProperties(require);
 
-                for (let index = 0; index < propertiesValue.length; index++) {
-                    const value = propertiesValue[index];
-
-                    if (
-                        typeof value === 'string' &&
-                        value.substr(0, 2) === '~{'
-                    ) {
-                        const variableName = value.substr(2, value.length - 3);
-                        const nodeName = `${require.name}:${variableName}`;
-
-                        newEnvVariableNode.links.push({
-                            type: linkType.useMtaProperty,
-                            name: nodeName,
-                        });
-                    }
-                }
+                newEnvVariableNode.links.push(...propertiesLinks);
             });
         });
 }
