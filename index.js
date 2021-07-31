@@ -421,8 +421,6 @@ function lookForDeployedDestinations(deployerNode, mtaGraph) {
                 },
             };
 
-            newDestinationNode.links = [];
-
             mtaGraph.addNode(newDestinationNode);
 
             const serviceDestinationNode =
@@ -477,8 +475,6 @@ function extractModules(mta, mtaGraph) {
 
         newNode.type = getNodeType(newNode);
 
-        newNode.links = [];
-
         mtaGraph.addNode(newNode);
     });
 }
@@ -497,8 +493,6 @@ function extractPropertySets(mtaGraph) {
                         category: categories.property,
                     },
                 };
-
-                newPropertyNode.links = [];
 
                 mtaGraph.addNode(newPropertyNode);
 
@@ -545,8 +539,6 @@ function extractEnviromentVariables(mtaGraph) {
                     },
                 };
 
-                newEnvVariableNode.links = [];
-
                 mtaGraph.addNode(newEnvVariableNode);
 
                 moduleNode.links.push({
@@ -589,8 +581,6 @@ function extractResources(mta, mtaGraph) {
         };
 
         newNode.type = getNodeType(newNode);
-
-        newNode.links = [];
 
         mtaGraph.addNode(newNode);
 
@@ -649,8 +639,6 @@ function extractDestinationsFromResources(mtaGraph) {
                         },
                     };
 
-                    newDestinationNode.links = [];
-
                     mtaGraph.addNode(newDestinationNode);
 
                     node.links.push({
@@ -666,8 +654,6 @@ function extractDestinationsFromResources(mtaGraph) {
                             destination,
                         },
                     };
-
-                    newUrlNode.links = [];
 
                     mtaGraph.addNode(newUrlNode);
 
@@ -719,6 +705,9 @@ class MtaClass {
     }
 
     addNode(newNode) {
+        if (!newNode.links) {
+            newNode.links = [];
+        }
         this.nodes.push(newNode);
         this.linksIndex[newNode.name] = newNode;
     }
