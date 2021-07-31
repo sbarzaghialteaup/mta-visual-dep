@@ -1,5 +1,6 @@
 /* eslint-disable no-plusplus */
 /* eslint-disable no-console */
+/* eslint no-param-reassign: ["error", { "props": false }] */
 const fs = require('fs');
 const process = require('process');
 const YAML = require('yaml');
@@ -230,10 +231,10 @@ async function render(mtaGraph) {
     const mtaGraphVis = graphviz.digraph('MTA');
     const clusters = [];
 
-    mtaGraph.forEach((node) => {
+    mtaGraph.nodes.forEach((node) => {
         mtaGraphVis.addNode(node.name, getNodeAttributes(node));
 
-        node.link?.forEach((link) => {
+        node.links?.forEach((link) => {
             let cluster = mtaGraphVis;
 
             if (link.cluster) {
@@ -387,7 +388,7 @@ function getLinkType(link) {
 }
 
 function getServiceDestinationNode(node) {
-    const serviceDestinationLink = node.link.find(
+    const serviceDestinationLink = node.links.find(
         (link) => link.destNode.type === nodeType.serviceDestination
     );
 
@@ -408,7 +409,7 @@ function getServiceDestinationNode(node) {
     return serviceDestinationLink.destNode;
 }
 
-function lookForDeployedDestinations(node, mtaGraph) {
+function lookForDeployedDestinations(deployerNode, mtaGraph) {
     function addNodeForDestination(useLinkType) {
         return (destination) => {
             const newDestinationNode = {
@@ -420,13 +421,12 @@ function lookForDeployedDestinations(node, mtaGraph) {
                 },
             };
 
-            newDestinationNode.link = [];
+            mtaGraph.addNode(newDestinationNode);
 
-            mtaGraph.push(newDestinationNode);
+            const serviceDestinationNode =
+                getServiceDestinationNode(deployerNode);
 
-            const serviceDestinationNode = getServiceDestinationNode(node);
-
-            serviceDestinationNode.link.push({
+            serviceDestinationNode.links.push({
                 type: useLinkType,
                 name: destination.Name,
             });
@@ -434,7 +434,7 @@ function lookForDeployedDestinations(node, mtaGraph) {
             const pointToNode =
                 mtaGraph.indexServiceName[destination.ServiceInstanceName];
 
-            newDestinationNode.link.push({
+            newDestinationNode.links.push({
                 name: pointToNode.name,
                 node: pointToNode,
                 type: linkType.pointToService,
@@ -442,11 +442,11 @@ function lookForDeployedDestinations(node, mtaGraph) {
         };
     }
 
-    node.additionalInfo.module?.parameters?.content?.instance?.destinations?.forEach(
+    deployerNode.additionalInfo.module?.parameters?.content?.instance?.destinations?.forEach(
         addNodeForDestination(linkType.defineDestinationInService)
     );
 
-    node.additionalInfo.module?.parameters?.content?.subaccount?.destinations?.forEach(
+    deployerNode.additionalInfo.module?.parameters?.content?.subaccount?.destinations?.forEach(
         addNodeForDestination(linkType.defineDestinationInSubaccount)
     );
 }
@@ -454,7 +454,7 @@ function lookForDeployedDestinations(node, mtaGraph) {
 function lookForDeployedApps(node) {
     node.additionalInfo.module?.['build-parameters']?.requires?.forEach(
         (destination) => {
-            node.link.push({
+            node.links.push({
                 type: linkType.deployApp,
                 name: destination.name,
             });
@@ -475,14 +475,12 @@ function extractModules(mta, mtaGraph) {
 
         newNode.type = getNodeType(newNode);
 
-        newNode.link = [];
-
-        mtaGraph.push(newNode);
+        mtaGraph.addNode(newNode);
     });
 }
 
 function extractPropertySets(mtaGraph) {
-    mtaGraph.forEach((moduleNode) => {
+    mtaGraph.nodes.forEach((moduleNode) => {
         moduleNode.additionalInfo.module.provides?.forEach((provide) => {
             mtaGraph.propertySets[provide.name] = moduleNode;
 
@@ -496,13 +494,9 @@ function extractPropertySets(mtaGraph) {
                     },
                 };
 
-                newPropertyNode.link = [];
+                mtaGraph.addNode(newPropertyNode);
 
-                mtaGraph.push(newPropertyNode);
-
-                mtaGraph.linksIndex[newPropertyNode.name] = newPropertyNode;
-
-                moduleNode.link.push({
+                moduleNode.links.push({
                     type: linkType.defineMtaProperty,
                     name: newPropertyNode.name,
                 });
@@ -512,71 +506,68 @@ function extractPropertySets(mtaGraph) {
 }
 
 function extractModulesRequirements(mtaGraph) {
-    mtaGraph
-        .filter((node) => node.additionalInfo.category === categories.module)
-        .forEach((moduleNode) => {
-            moduleNode.additionalInfo.module.requires?.forEach((require) => {
-                if (mtaGraph.propertySets[require.name]) {
-                    return;
-                }
+    mtaGraph.moduleNodes.forEach((moduleNode) => {
+        moduleNode.additionalInfo.module.requires?.forEach((require) => {
+            if (mtaGraph.propertySets[require.name]) {
+                return;
+            }
 
-                moduleNode.link.push({
-                    name: require.name,
-                });
+            moduleNode.links.push({
+                name: require.name,
             });
         });
+    });
 }
 
 function extractEnviromentVariables(mtaGraph) {
-    mtaGraph
-        .filter((node) => node.additionalInfo.category === categories.module)
-        .forEach((moduleNode) => {
-            moduleNode.additionalInfo.module.requires?.forEach((require) => {
-                if (!mtaGraph.propertySets[require.name]) {
-                    return;
-                }
+    function extractLinksToProperties(require) {
+        const links = [];
+        const propertiesValue = Object.values(require.properties);
 
-                const newEnvVariableNode = {
-                    type: nodeType.enviromentVariable,
-                    name: require.group,
-                    value: require.properties,
-                    additionalInfo: {
-                        category: categories.enviromentVariable,
-                    },
-                };
+        for (let index = 0; index < propertiesValue.length; index++) {
+            const value = propertiesValue[index];
 
-                newEnvVariableNode.link = [];
+            if (typeof value === 'string' && value.substr(0, 2) === '~{') {
+                const variableName = value.substr(2, value.length - 3);
+                const nodeName = `${require.name}:${variableName}`;
 
-                mtaGraph.push(newEnvVariableNode);
-
-                mtaGraph.linksIndex[newEnvVariableNode.name] =
-                    newEnvVariableNode;
-
-                moduleNode.link.push({
-                    type: linkType.defineEnvVariable,
-                    name: newEnvVariableNode.name,
+                links.push({
+                    type: linkType.useMtaProperty,
+                    name: nodeName,
                 });
+            }
+        }
 
-                const propertiesValue = Object.values(require.properties);
+        return links;
+    }
 
-                for (let index = 0; index < propertiesValue.length; index++) {
-                    const value = propertiesValue[index];
+    mtaGraph.moduleNodes.forEach((moduleNode) => {
+        moduleNode.additionalInfo.module.requires?.forEach((require) => {
+            if (!mtaGraph.propertySets[require.name]) {
+                return;
+            }
 
-                    if (
-                        typeof value === 'string' &&
-                        value.substr(0, 2) === '~{'
-                    ) {
-                        const variableName = value.substr(2, value.length - 3);
-                        const nodeName = `${require.name}:${variableName}`;
+            const newEnvVariableNode = {
+                type: nodeType.enviromentVariable,
+                name: require.group,
+                value: require.properties,
+                additionalInfo: {
+                    category: categories.enviromentVariable,
+                },
+            };
 
-                        newEnvVariableNode.link.push({
-                            type: linkType.useMtaProperty,
-                            name: nodeName,
-                        });
-                    }
-                }
+            mtaGraph.addNode(newEnvVariableNode);
+
+            moduleNode.links.push({
+                type: linkType.defineEnvVariable,
+                name: newEnvVariableNode.name,
             });
+
+            const propertiesLinks = extractLinksToProperties(require);
+
+            newEnvVariableNode.links.push(...propertiesLinks);
         });
+    });
 }
 
 function extractResources(mta, mtaGraph) {
@@ -593,23 +584,13 @@ function extractResources(mta, mtaGraph) {
 
         newNode.type = getNodeType(newNode);
 
-        newNode.link = [];
-
-        mtaGraph.push(newNode);
-
-        mtaGraph.linksIndex[newNode.name] = newNode;
-
-        if (newNode.additionalInfo.resource?.parameters['service-name']) {
-            mtaGraph.indexServiceName[
-                newNode.additionalInfo.resource.parameters['service-name']
-            ] = newNode;
-        }
+        mtaGraph.addNode(newNode);
     });
 }
 
 function setLinksType(mtaGraph) {
-    mtaGraph.forEach((node) => {
-        node.link
+    mtaGraph.nodes.forEach((node) => {
+        node.links
             ?.filter((link) => !link.type)
             .forEach((link) => {
                 if (mtaGraph.propertySets[link.name]) {
@@ -631,7 +612,7 @@ function setLinksType(mtaGraph) {
 }
 
 function extractDestinationsFromModules(mtaGraph) {
-    mtaGraph.forEach((node) => {
+    mtaGraph.nodes.forEach((node) => {
         if (node.type === nodeType.deployer) {
             lookForDeployedDestinations(node, mtaGraph);
             lookForDeployedApps(node);
@@ -640,54 +621,48 @@ function extractDestinationsFromModules(mtaGraph) {
 }
 
 function extractDestinationsFromResources(mtaGraph) {
-    mtaGraph
-        .filter((node) => node.additionalInfo.category === categories.resource)
-        .forEach((node) => {
-            node.additionalInfo.resource.parameters?.config?.init_data?.instance?.destinations?.forEach(
-                (destination) => {
-                    const newDestinationNode = {
-                        type: nodeType.destination,
-                        name: destination.Name,
-                        additionalInfo: {
-                            category: categories.destination,
-                            destination,
-                        },
-                    };
+    mtaGraph.resourceNodes.forEach((node) => {
+        node.additionalInfo.resource.parameters?.config?.init_data?.instance?.destinations?.forEach(
+            (destination) => {
+                const newDestinationNode = {
+                    type: nodeType.destination,
+                    name: destination.Name,
+                    additionalInfo: {
+                        category: categories.destination,
+                        destination,
+                    },
+                };
 
-                    newDestinationNode.link = [];
+                mtaGraph.addNode(newDestinationNode);
 
-                    mtaGraph.push(newDestinationNode);
+                node.links.push({
+                    type: linkType.defineDestinationInService,
+                    name: destination.Name,
+                });
 
-                    node.link.push({
-                        type: linkType.defineDestinationInService,
-                        name: destination.Name,
-                    });
+                const newUrlNode = {
+                    type: nodeType.destinationURL,
+                    name: destination.URL,
+                    additionalInfo: {
+                        category: categories.destination,
+                        destination,
+                    },
+                };
 
-                    const newUrlNode = {
-                        type: nodeType.destinationURL,
-                        name: destination.URL,
-                        additionalInfo: {
-                            category: categories.destination,
-                            destination,
-                        },
-                    };
+                mtaGraph.addNode(newUrlNode);
 
-                    newUrlNode.link = [];
-
-                    mtaGraph.push(newUrlNode);
-
-                    newDestinationNode.link.push({
-                        type: linkType.pointToUrl,
-                        name: newUrlNode.name,
-                    });
-                }
-            );
-        });
+                newDestinationNode.links.push({
+                    type: linkType.pointToUrl,
+                    name: newUrlNode.name,
+                });
+            }
+        );
+    });
 }
 
 function setClusterToLinks(mtaGraph) {
-    mtaGraph.forEach((node) => {
-        node.link?.forEach((link) => {
+    mtaGraph.nodes.forEach((node) => {
+        node.links?.forEach((link) => {
             if (
                 link.type === linkType.deployTablesTo ||
                 link.type === linkType.readWrite
@@ -715,15 +690,46 @@ function setClusterToLinks(mtaGraph) {
     });
 }
 
+class MtaGraph {
+    constructor() {
+        this.nodes = [];
+        this.linksIndex = [];
+        this.indexServiceName = [];
+        this.propertySets = [];
+    }
+
+    addNode(newNode) {
+        if (!newNode.links) {
+            newNode.links = [];
+        }
+        this.nodes.push(newNode);
+        this.linksIndex[newNode.name] = newNode;
+
+        if (newNode.additionalInfo.resource?.parameters['service-name']) {
+            this.indexServiceName[
+                newNode.additionalInfo.resource.parameters['service-name']
+            ] = newNode;
+        }
+    }
+
+    get moduleNodes() {
+        return this.nodes.filter(
+            (node) => node.additionalInfo.category === categories.module
+        );
+    }
+
+    get resourceNodes() {
+        return this.nodes.filter(
+            (node) => node.additionalInfo.category === categories.resource
+        );
+    }
+}
+
 /**
  * Main
  */
 async function main() {
-    const mtaGraph = [];
-
-    mtaGraph.linksIndex = [];
-    mtaGraph.indexServiceName = [];
-    mtaGraph.propertySets = [];
+    const mtaGraph = new MtaGraph();
 
     const file = fs.readFileSync('./mta.yaml', 'utf8');
 
