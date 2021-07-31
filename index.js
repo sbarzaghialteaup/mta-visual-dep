@@ -506,19 +506,17 @@ function extractPropertySets(mtaGraph) {
 }
 
 function extractModulesRequirements(mtaGraph) {
-    mtaGraph.nodes
-        .filter((node) => node.additionalInfo.category === categories.module)
-        .forEach((moduleNode) => {
-            moduleNode.additionalInfo.module.requires?.forEach((require) => {
-                if (mtaGraph.propertySets[require.name]) {
-                    return;
-                }
+    mtaGraph.moduleNodes.forEach((moduleNode) => {
+        moduleNode.additionalInfo.module.requires?.forEach((require) => {
+            if (mtaGraph.propertySets[require.name]) {
+                return;
+            }
 
-                moduleNode.links.push({
-                    name: require.name,
-                });
+            moduleNode.links.push({
+                name: require.name,
             });
         });
+    });
 }
 
 function extractEnviromentVariables(mtaGraph) {
@@ -543,35 +541,33 @@ function extractEnviromentVariables(mtaGraph) {
         return links;
     }
 
-    mtaGraph.nodes
-        .filter((node) => node.additionalInfo.category === categories.module)
-        .forEach((moduleNode) => {
-            moduleNode.additionalInfo.module.requires?.forEach((require) => {
-                if (!mtaGraph.propertySets[require.name]) {
-                    return;
-                }
+    mtaGraph.moduleNodes.forEach((moduleNode) => {
+        moduleNode.additionalInfo.module.requires?.forEach((require) => {
+            if (!mtaGraph.propertySets[require.name]) {
+                return;
+            }
 
-                const newEnvVariableNode = {
-                    type: nodeType.enviromentVariable,
-                    name: require.group,
-                    value: require.properties,
-                    additionalInfo: {
-                        category: categories.enviromentVariable,
-                    },
-                };
+            const newEnvVariableNode = {
+                type: nodeType.enviromentVariable,
+                name: require.group,
+                value: require.properties,
+                additionalInfo: {
+                    category: categories.enviromentVariable,
+                },
+            };
 
-                mtaGraph.addNode(newEnvVariableNode);
+            mtaGraph.addNode(newEnvVariableNode);
 
-                moduleNode.links.push({
-                    type: linkType.defineEnvVariable,
-                    name: newEnvVariableNode.name,
-                });
-
-                const propertiesLinks = extractLinksToProperties(require);
-
-                newEnvVariableNode.links.push(...propertiesLinks);
+            moduleNode.links.push({
+                type: linkType.defineEnvVariable,
+                name: newEnvVariableNode.name,
             });
+
+            const propertiesLinks = extractLinksToProperties(require);
+
+            newEnvVariableNode.links.push(...propertiesLinks);
         });
+    });
 }
 
 function extractResources(mta, mtaGraph) {
@@ -625,45 +621,43 @@ function extractDestinationsFromModules(mtaGraph) {
 }
 
 function extractDestinationsFromResources(mtaGraph) {
-    mtaGraph.nodes
-        .filter((node) => node.additionalInfo.category === categories.resource)
-        .forEach((node) => {
-            node.additionalInfo.resource.parameters?.config?.init_data?.instance?.destinations?.forEach(
-                (destination) => {
-                    const newDestinationNode = {
-                        type: nodeType.destination,
-                        name: destination.Name,
-                        additionalInfo: {
-                            category: categories.destination,
-                            destination,
-                        },
-                    };
+    mtaGraph.resourceNodes.forEach((node) => {
+        node.additionalInfo.resource.parameters?.config?.init_data?.instance?.destinations?.forEach(
+            (destination) => {
+                const newDestinationNode = {
+                    type: nodeType.destination,
+                    name: destination.Name,
+                    additionalInfo: {
+                        category: categories.destination,
+                        destination,
+                    },
+                };
 
-                    mtaGraph.addNode(newDestinationNode);
+                mtaGraph.addNode(newDestinationNode);
 
-                    node.links.push({
-                        type: linkType.defineDestinationInService,
-                        name: destination.Name,
-                    });
+                node.links.push({
+                    type: linkType.defineDestinationInService,
+                    name: destination.Name,
+                });
 
-                    const newUrlNode = {
-                        type: nodeType.destinationURL,
-                        name: destination.URL,
-                        additionalInfo: {
-                            category: categories.destination,
-                            destination,
-                        },
-                    };
+                const newUrlNode = {
+                    type: nodeType.destinationURL,
+                    name: destination.URL,
+                    additionalInfo: {
+                        category: categories.destination,
+                        destination,
+                    },
+                };
 
-                    mtaGraph.addNode(newUrlNode);
+                mtaGraph.addNode(newUrlNode);
 
-                    newDestinationNode.links.push({
-                        type: linkType.pointToUrl,
-                        name: newUrlNode.name,
-                    });
-                }
-            );
-        });
+                newDestinationNode.links.push({
+                    type: linkType.pointToUrl,
+                    name: newUrlNode.name,
+                });
+            }
+        );
+    });
 }
 
 function setClusterToLinks(mtaGraph) {
@@ -716,6 +710,18 @@ class MtaGraph {
                 newNode.additionalInfo.resource.parameters['service-name']
             ] = newNode;
         }
+    }
+
+    get moduleNodes() {
+        return this.nodes.filter(
+            (node) => node.additionalInfo.category === categories.module
+        );
+    }
+
+    get resourceNodes() {
+        return this.nodes.filter(
+            (node) => node.additionalInfo.category === categories.resource
+        );
     }
 }
 
