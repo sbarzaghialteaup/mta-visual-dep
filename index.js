@@ -589,12 +589,6 @@ function extractResources(mta, mtaGraph) {
         newNode.type = getNodeType(newNode);
 
         mtaGraph.addNode(newNode);
-
-        if (newNode.additionalInfo.resource?.parameters['service-name']) {
-            mtaGraph.indexServiceName[
-                newNode.additionalInfo.resource.parameters['service-name']
-            ] = newNode;
-        }
     });
 }
 
@@ -716,6 +710,12 @@ class MtaClass {
         }
         this.nodes.push(newNode);
         this.linksIndex[newNode.name] = newNode;
+
+        if (newNode.additionalInfo.resource?.parameters['service-name']) {
+            this.indexServiceName[
+                newNode.additionalInfo.resource.parameters['service-name']
+            ] = newNode;
+        }
     }
 }
 
