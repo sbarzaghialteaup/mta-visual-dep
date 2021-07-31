@@ -230,7 +230,7 @@ async function render(mtaGraph) {
     const mtaGraphVis = graphviz.digraph('MTA');
     const clusters = [];
 
-    mtaGraph.forEach((node) => {
+    mtaGraph.nodes.forEach((node) => {
         mtaGraphVis.addNode(node.name, getNodeAttributes(node));
 
         node.link?.forEach((link) => {
@@ -422,7 +422,7 @@ function lookForDeployedDestinations(node, mtaGraph) {
 
             newDestinationNode.link = [];
 
-            mtaGraph.push(newDestinationNode);
+            mtaGraph.addNode(newDestinationNode);
 
             const serviceDestinationNode = getServiceDestinationNode(node);
 
@@ -477,12 +477,12 @@ function extractModules(mta, mtaGraph) {
 
         newNode.link = [];
 
-        mtaGraph.push(newNode);
+        mtaGraph.addNode(newNode);
     });
 }
 
 function extractPropertySets(mtaGraph) {
-    mtaGraph.forEach((moduleNode) => {
+    mtaGraph.nodes.forEach((moduleNode) => {
         moduleNode.additionalInfo.module.provides?.forEach((provide) => {
             mtaGraph.propertySets[provide.name] = moduleNode;
 
@@ -498,9 +498,7 @@ function extractPropertySets(mtaGraph) {
 
                 newPropertyNode.link = [];
 
-                mtaGraph.push(newPropertyNode);
-
-                mtaGraph.linksIndex[newPropertyNode.name] = newPropertyNode;
+                mtaGraph.addNode(newPropertyNode);
 
                 moduleNode.link.push({
                     type: linkType.defineMtaProperty,
@@ -512,7 +510,7 @@ function extractPropertySets(mtaGraph) {
 }
 
 function extractModulesRequirements(mtaGraph) {
-    mtaGraph
+    mtaGraph.nodes
         .filter((node) => node.additionalInfo.category === categories.module)
         .forEach((moduleNode) => {
             moduleNode.additionalInfo.module.requires?.forEach((require) => {
@@ -528,7 +526,7 @@ function extractModulesRequirements(mtaGraph) {
 }
 
 function extractEnviromentVariables(mtaGraph) {
-    mtaGraph
+    mtaGraph.nodes
         .filter((node) => node.additionalInfo.category === categories.module)
         .forEach((moduleNode) => {
             moduleNode.additionalInfo.module.requires?.forEach((require) => {
@@ -547,10 +545,7 @@ function extractEnviromentVariables(mtaGraph) {
 
                 newEnvVariableNode.link = [];
 
-                mtaGraph.push(newEnvVariableNode);
-
-                mtaGraph.linksIndex[newEnvVariableNode.name] =
-                    newEnvVariableNode;
+                mtaGraph.addNode(newEnvVariableNode);
 
                 moduleNode.link.push({
                     type: linkType.defineEnvVariable,
@@ -595,9 +590,7 @@ function extractResources(mta, mtaGraph) {
 
         newNode.link = [];
 
-        mtaGraph.push(newNode);
-
-        mtaGraph.linksIndex[newNode.name] = newNode;
+        mtaGraph.addNode(newNode);
 
         if (newNode.additionalInfo.resource?.parameters['service-name']) {
             mtaGraph.indexServiceName[
@@ -608,7 +601,7 @@ function extractResources(mta, mtaGraph) {
 }
 
 function setLinksType(mtaGraph) {
-    mtaGraph.forEach((node) => {
+    mtaGraph.nodes.forEach((node) => {
         node.link
             ?.filter((link) => !link.type)
             .forEach((link) => {
@@ -631,7 +624,7 @@ function setLinksType(mtaGraph) {
 }
 
 function extractDestinationsFromModules(mtaGraph) {
-    mtaGraph.forEach((node) => {
+    mtaGraph.nodes.forEach((node) => {
         if (node.type === nodeType.deployer) {
             lookForDeployedDestinations(node, mtaGraph);
             lookForDeployedApps(node);
@@ -640,7 +633,7 @@ function extractDestinationsFromModules(mtaGraph) {
 }
 
 function extractDestinationsFromResources(mtaGraph) {
-    mtaGraph
+    mtaGraph.nodes
         .filter((node) => node.additionalInfo.category === categories.resource)
         .forEach((node) => {
             node.additionalInfo.resource.parameters?.config?.init_data?.instance?.destinations?.forEach(
@@ -656,7 +649,7 @@ function extractDestinationsFromResources(mtaGraph) {
 
                     newDestinationNode.link = [];
 
-                    mtaGraph.push(newDestinationNode);
+                    mtaGraph.addNode(newDestinationNode);
 
                     node.link.push({
                         type: linkType.defineDestinationInService,
@@ -674,7 +667,7 @@ function extractDestinationsFromResources(mtaGraph) {
 
                     newUrlNode.link = [];
 
-                    mtaGraph.push(newUrlNode);
+                    mtaGraph.addNode(newUrlNode);
 
                     newDestinationNode.link.push({
                         type: linkType.pointToUrl,
@@ -686,7 +679,7 @@ function extractDestinationsFromResources(mtaGraph) {
 }
 
 function setClusterToLinks(mtaGraph) {
-    mtaGraph.forEach((node) => {
+    mtaGraph.nodes.forEach((node) => {
         node.link?.forEach((link) => {
             if (
                 link.type === linkType.deployTablesTo ||
@@ -715,15 +708,25 @@ function setClusterToLinks(mtaGraph) {
     });
 }
 
+class MtaClass {
+    constructor() {
+        this.nodes = [];
+        this.linksIndex = [];
+        this.indexServiceName = [];
+        this.propertySets = [];
+    }
+
+    addNode(newNode) {
+        this.nodes.push(newNode);
+        this.linksIndex[newNode.name] = newNode;
+    }
+}
+
 /**
  * Main
  */
 async function main() {
-    const mtaGraph = [];
-
-    mtaGraph.linksIndex = [];
-    mtaGraph.indexServiceName = [];
-    mtaGraph.propertySets = [];
+    const mtaGraph = new MtaClass();
 
     const file = fs.readFileSync('./mta.yaml', 'utf8');
 
