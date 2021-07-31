@@ -260,9 +260,9 @@ async function render(mtaGraph) {
         });
     });
 
-    fs.writeFileSync('./test.dot', mtaGraphVis.to_dot());
+    fs.writeFileSync('./mta.dot', mtaGraphVis.to_dot());
 
-    mtaGraphVis.output('svg', 'test.svg');
+    mtaGraphVis.output('svg', 'mta.svg');
 }
 
 function getNodeType(nodeInfo) {
@@ -752,4 +752,4 @@ async function main() {
 
 main();
 
-console.log('updated ' + new Date());
+console.log(`updated ${new Date()}`);
