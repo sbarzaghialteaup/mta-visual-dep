@@ -696,7 +696,7 @@ function setClusterToLinks(mtaGraph) {
     });
 }
 
-class MtaClass {
+class MtaGraph {
     constructor() {
         this.nodes = [];
         this.linksIndex = [];
@@ -723,7 +723,7 @@ class MtaClass {
  * Main
  */
 async function main() {
-    const mtaGraph = new MtaClass();
+    const mtaGraph = new MtaGraph();
 
     const file = fs.readFileSync('./mta.yaml', 'utf8');
 
