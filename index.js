@@ -1,5 +1,6 @@
 /* eslint-disable no-plusplus */
 /* eslint-disable no-console */
+/* eslint no-param-reassign: ["error", { "props": false }] */
 const fs = require('fs');
 const process = require('process');
 const YAML = require('yaml');
@@ -233,7 +234,7 @@ async function render(mtaGraph) {
     mtaGraph.nodes.forEach((node) => {
         mtaGraphVis.addNode(node.name, getNodeAttributes(node));
 
-        node.link?.forEach((link) => {
+        node.links?.forEach((link) => {
             let cluster = mtaGraphVis;
 
             if (link.cluster) {
@@ -387,7 +388,7 @@ function getLinkType(link) {
 }
 
 function getServiceDestinationNode(node) {
-    const serviceDestinationLink = node.link.find(
+    const serviceDestinationLink = node.links.find(
         (link) => link.destNode.type === nodeType.serviceDestination
     );
 
@@ -408,7 +409,7 @@ function getServiceDestinationNode(node) {
     return serviceDestinationLink.destNode;
 }
 
-function lookForDeployedDestinations(node, mtaGraph) {
+function lookForDeployedDestinations(deployerNode, mtaGraph) {
     function addNodeForDestination(useLinkType) {
         return (destination) => {
             const newDestinationNode = {
@@ -420,13 +421,14 @@ function lookForDeployedDestinations(node, mtaGraph) {
                 },
             };
 
-            newDestinationNode.link = [];
+            newDestinationNode.links = [];
 
             mtaGraph.addNode(newDestinationNode);
 
-            const serviceDestinationNode = getServiceDestinationNode(node);
+            const serviceDestinationNode =
+                getServiceDestinationNode(deployerNode);
 
-            serviceDestinationNode.link.push({
+            serviceDestinationNode.links.push({
                 type: useLinkType,
                 name: destination.Name,
             });
@@ -434,7 +436,7 @@ function lookForDeployedDestinations(node, mtaGraph) {
             const pointToNode =
                 mtaGraph.indexServiceName[destination.ServiceInstanceName];
 
-            newDestinationNode.link.push({
+            newDestinationNode.links.push({
                 name: pointToNode.name,
                 node: pointToNode,
                 type: linkType.pointToService,
@@ -442,11 +444,11 @@ function lookForDeployedDestinations(node, mtaGraph) {
         };
     }
 
-    node.additionalInfo.module?.parameters?.content?.instance?.destinations?.forEach(
+    deployerNode.additionalInfo.module?.parameters?.content?.instance?.destinations?.forEach(
         addNodeForDestination(linkType.defineDestinationInService)
     );
 
-    node.additionalInfo.module?.parameters?.content?.subaccount?.destinations?.forEach(
+    deployerNode.additionalInfo.module?.parameters?.content?.subaccount?.destinations?.forEach(
         addNodeForDestination(linkType.defineDestinationInSubaccount)
     );
 }
@@ -454,7 +456,7 @@ function lookForDeployedDestinations(node, mtaGraph) {
 function lookForDeployedApps(node) {
     node.additionalInfo.module?.['build-parameters']?.requires?.forEach(
         (destination) => {
-            node.link.push({
+            node.links.push({
                 type: linkType.deployApp,
                 name: destination.name,
             });
@@ -475,7 +477,7 @@ function extractModules(mta, mtaGraph) {
 
         newNode.type = getNodeType(newNode);
 
-        newNode.link = [];
+        newNode.links = [];
 
         mtaGraph.addNode(newNode);
     });
@@ -496,11 +498,11 @@ function extractPropertySets(mtaGraph) {
                     },
                 };
 
-                newPropertyNode.link = [];
+                newPropertyNode.links = [];
 
                 mtaGraph.addNode(newPropertyNode);
 
-                moduleNode.link.push({
+                moduleNode.links.push({
                     type: linkType.defineMtaProperty,
                     name: newPropertyNode.name,
                 });
@@ -518,7 +520,7 @@ function extractModulesRequirements(mtaGraph) {
                     return;
                 }
 
-                moduleNode.link.push({
+                moduleNode.links.push({
                     name: require.name,
                 });
             });
@@ -543,11 +545,11 @@ function extractEnviromentVariables(mtaGraph) {
                     },
                 };
 
-                newEnvVariableNode.link = [];
+                newEnvVariableNode.links = [];
 
                 mtaGraph.addNode(newEnvVariableNode);
 
-                moduleNode.link.push({
+                moduleNode.links.push({
                     type: linkType.defineEnvVariable,
                     name: newEnvVariableNode.name,
                 });
@@ -564,7 +566,7 @@ function extractEnviromentVariables(mtaGraph) {
                         const variableName = value.substr(2, value.length - 3);
                         const nodeName = `${require.name}:${variableName}`;
 
-                        newEnvVariableNode.link.push({
+                        newEnvVariableNode.links.push({
                             type: linkType.useMtaProperty,
                             name: nodeName,
                         });
@@ -588,7 +590,7 @@ function extractResources(mta, mtaGraph) {
 
         newNode.type = getNodeType(newNode);
 
-        newNode.link = [];
+        newNode.links = [];
 
         mtaGraph.addNode(newNode);
 
@@ -602,7 +604,7 @@ function extractResources(mta, mtaGraph) {
 
 function setLinksType(mtaGraph) {
     mtaGraph.nodes.forEach((node) => {
-        node.link
+        node.links
             ?.filter((link) => !link.type)
             .forEach((link) => {
                 if (mtaGraph.propertySets[link.name]) {
@@ -647,11 +649,11 @@ function extractDestinationsFromResources(mtaGraph) {
                         },
                     };
 
-                    newDestinationNode.link = [];
+                    newDestinationNode.links = [];
 
                     mtaGraph.addNode(newDestinationNode);
 
-                    node.link.push({
+                    node.links.push({
                         type: linkType.defineDestinationInService,
                         name: destination.Name,
                     });
@@ -665,11 +667,11 @@ function extractDestinationsFromResources(mtaGraph) {
                         },
                     };
 
-                    newUrlNode.link = [];
+                    newUrlNode.links = [];
 
                     mtaGraph.addNode(newUrlNode);
 
-                    newDestinationNode.link.push({
+                    newDestinationNode.links.push({
                         type: linkType.pointToUrl,
                         name: newUrlNode.name,
                     });
@@ -680,7 +682,7 @@ function extractDestinationsFromResources(mtaGraph) {
 
 function setClusterToLinks(mtaGraph) {
     mtaGraph.nodes.forEach((node) => {
-        node.link?.forEach((link) => {
+        node.links?.forEach((link) => {
             if (
                 link.type === linkType.deployTablesTo ||
                 link.type === linkType.readWrite
