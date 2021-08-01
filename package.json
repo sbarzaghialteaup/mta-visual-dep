@@ -5,6 +5,7 @@
     "main": "index.js",
     "dependencies": {
         "graphviz": "0.0.9",
+        "mta-deps-parser": "0.0.1",
         "yaml": "^1.10.2"
     },
     "devDependencies": {

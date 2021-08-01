@@ -1,5 +1,5 @@
 const graphviz = require('graphviz');
-const MtaGraph = require('./mta-graph');
+const MtaGraph = require('mta-deps-parser');
 
 function renderNodeJS(node) {
     const nodeAttributes = {
@@ -125,40 +125,30 @@ function renderApprouter(node) {
     return nodeAttributes;
 }
 
-function getNodeAttributes(node) {
-    let attributes = {};
+const nodeRenderers = {
+    [MtaGraph.nodeType.nodejs]: renderNodeJS,
+    [MtaGraph.nodeType.dbDeployer]: renderDbDeployer,
+    [MtaGraph.nodeType.deployer]: renderDeployer,
+    [MtaGraph.nodeType.html5]: renderHtml5,
+    [MtaGraph.nodeType.serviceHanaInstance]: renderServiceHanaInstance,
+    [MtaGraph.nodeType.serviceHtml5Repo]: renderServiceHtml5,
+    [MtaGraph.nodeType.serviceDestination]: renderServiceDestination,
+    [MtaGraph.nodeType.serviceXsuaa]: renderServiceXsuaa,
+    [MtaGraph.nodeType.servicePortal]: renderServicePortal,
+    [MtaGraph.nodeType.serviceWorkflow]: renderServiceWorkflow,
+    [MtaGraph.nodeType.destination]: renderDestination,
+    [MtaGraph.nodeType.property]: renderProperty,
+    [MtaGraph.nodeType.portalDeployer]: renderPortalDeployer,
+    [MtaGraph.nodeType.approuter]: renderApprouter,
+};
 
-    if (node.type === MtaGraph.nodeType.nodejs) {
-        attributes = renderNodeJS(node);
-    } else if (node.type === MtaGraph.nodeType.dbDeployer) {
-        attributes = renderDbDeployer(node);
-    } else if (node.type === MtaGraph.nodeType.deployer) {
-        attributes = renderDeployer(node);
-    } else if (node.type === MtaGraph.nodeType.html5) {
-        attributes = renderHtml5(node);
-    } else if (node.type === MtaGraph.nodeType.serviceHanaInstance) {
-        attributes = renderServiceHanaInstance(node);
-    } else if (node.type === MtaGraph.nodeType.serviceHtml5Repo) {
-        attributes = renderServiceHtml5(node);
-    } else if (node.type === MtaGraph.nodeType.serviceDestination) {
-        attributes = renderServiceDestination(node);
-    } else if (node.type === MtaGraph.nodeType.serviceXsuaa) {
-        attributes = renderServiceXsuaa(node);
-    } else if (node.type === MtaGraph.nodeType.servicePortal) {
-        attributes = renderServicePortal(node);
-    } else if (node.type === MtaGraph.nodeType.serviceWorkflow) {
-        attributes = renderServiceWorkflow(node);
-    } else if (node.type === MtaGraph.nodeType.destination) {
-        attributes = renderDestination(node);
-    } else if (node.type === MtaGraph.nodeType.property) {
-        attributes = renderProperty(node);
-    } else if (node.type === MtaGraph.nodeType.portalDeployer) {
-        attributes = renderPortalDeployer(node);
-    } else if (node.type === MtaGraph.nodeType.approuter) {
-        attributes = renderApprouter(node);
+function getNodeAttributes(node) {
+    const renderer = nodeRenderers[node.type];
+    if (!renderer) {
+        return {};
     }
 
-    return attributes;
+    return renderer(node);
 }
 
 function getEdgeColor(link) {
@@ -173,15 +163,21 @@ function getEdgeColor(link) {
     return colorMap[link.type] ? colorMap[link.type] : 'black';
 }
 
-async function render(mtaGraph) {
-    const mtaGraphVis = graphviz.digraph('MTA');
+async function render(mtaGraph, customRenderers) {
+    if (customRenderers) {
+        Object.entries(customRenderers).forEach(([key, renderer]) => {
+            nodeRenderers[key] = renderer;
+        });
+    }
+
+    const mtaGraphViz = graphviz.digraph('MTA');
     const clusters = [];
 
     mtaGraph.nodes.forEach((node) => {
-        mtaGraphVis.addNode(node.name, getNodeAttributes(node));
+        mtaGraphViz.addNode(node.name, getNodeAttributes(node));
 
         node.links?.forEach((link) => {
-            let cluster = mtaGraphVis;
+            let cluster = mtaGraphViz;
 
             if (link.cluster) {
                 const clusterId = `cluster_${link.cluster.replace(/ /g, '_')}`;
@@ -189,7 +185,7 @@ async function render(mtaGraph) {
                 cluster = clusters[clusterId];
 
                 if (!cluster) {
-                    cluster = mtaGraphVis.addCluster(clusterId);
+                    cluster = mtaGraphViz.addCluster(clusterId);
                     cluster.set('label', link.cluster);
 
                     clusters[clusterId] = cluster;
@@ -207,7 +203,7 @@ async function render(mtaGraph) {
         });
     });
 
-    return mtaGraphVis;
+    return mtaGraphViz;
 }
 
 module.exports = render;

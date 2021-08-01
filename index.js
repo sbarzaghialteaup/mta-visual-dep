@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 const fs = require('fs');
-const MtaGraph = require('./mta-graph');
-const GraphVizRenderer = require('./mta-graph-graphvis');
+const MtaDeps = require('mta-deps-parser');
+const GraphVizRenderer = require('./mta-graph-graphviz');
 
 /**
  * Main
@@ -9,14 +9,14 @@ const GraphVizRenderer = require('./mta-graph-graphvis');
 async function main() {
     const mtaString = fs.readFileSync('./mta.yaml', 'utf8');
 
-    const mtaGraph = MtaGraph.generate(mtaString);
+    const mtaGraph = MtaDeps.parse(mtaString);
     const renderedGraph = await GraphVizRenderer(mtaGraph);
 
     fs.writeFileSync('./mta.dot', renderedGraph.to_dot());
 
     renderedGraph.output('svg', 'mta.svg');
+
+    console.log(`mta.svg updated at ${new Date()}`);
 }
 
 main();
-
-console.log(`updated ${new Date()}`);
