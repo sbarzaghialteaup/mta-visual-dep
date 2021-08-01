@@ -1,5 +1,5 @@
 const graphviz = require('graphviz');
-const MtaGraph = require('./mta-graph');
+const MtaGraph = require('mta-deps-parser');
 
 function renderNodeJS(node) {
     const nodeAttributes = {
