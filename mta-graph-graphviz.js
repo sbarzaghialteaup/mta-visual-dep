@@ -1,5 +1,5 @@
 const graphviz = require('graphviz');
-const MtaGraph = require('./mta-graph');
+const MtaGraph = require('mta-deps-parser');
 
 function renderNodeJS(node) {
     const nodeAttributes = {
@@ -170,14 +170,14 @@ async function render(mtaGraph, customRenderers) {
         });
     }
 
-    const mtaGraphVis = graphviz.digraph('MTA');
+    const mtaGraphViz = graphviz.digraph('MTA');
     const clusters = [];
 
     mtaGraph.nodes.forEach((node) => {
-        mtaGraphVis.addNode(node.name, getNodeAttributes(node));
+        mtaGraphViz.addNode(node.name, getNodeAttributes(node));
 
         node.links?.forEach((link) => {
-            let cluster = mtaGraphVis;
+            let cluster = mtaGraphViz;
 
             if (link.cluster) {
                 const clusterId = `cluster_${link.cluster.replace(/ /g, '_')}`;
@@ -185,7 +185,7 @@ async function render(mtaGraph, customRenderers) {
                 cluster = clusters[clusterId];
 
                 if (!cluster) {
-                    cluster = mtaGraphVis.addCluster(clusterId);
+                    cluster = mtaGraphViz.addCluster(clusterId);
                     cluster.set('label', link.cluster);
 
                     clusters[clusterId] = cluster;
@@ -203,7 +203,7 @@ async function render(mtaGraph, customRenderers) {
         });
     });
 
-    return mtaGraphVis;
+    return mtaGraphViz;
 }
 
 module.exports = render;
