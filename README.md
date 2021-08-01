@@ -8,4 +8,4 @@ This is an example of a generated `mta.svg` file:
 Full svg available [here](https://raw.githubusercontent.com/sbarzaghialteaup/mta-visual-dep/master/mta.svg)
 
 ### Note
-The graphviz part of the repository will be moved in separate package soon
+The graphviz part of the repository will be moved in a separate package soon
