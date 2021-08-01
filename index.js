@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 const fs = require('fs');
 const MtaGraph = require('./mta-graph');
-const GraphVizRenderer = require('./mta-graph-graphvis');
+const GraphVizRenderer = require('./mta-graph-graphviz');
 
 /**
  * Main
