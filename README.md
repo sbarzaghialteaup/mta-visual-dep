@@ -1,5 +1,5 @@
 # Description
-Parse a SAP `mta.yaml` file using the [`mta-deps-parser`](https://www.npmjs.com/package/mta-deps-parser) package and the `mta-deps-graphviz`(https://www.npmjs.com/package/mta-deps-graphviz) package to generate a `mta.svg` file representing the modules, resources and relationships between them.
+Parse a SAP `mta.yaml` file using the [`mta-deps-parser`](https://www.npmjs.com/package/mta-deps-parser) package and the [`mta-deps-graphviz`](https://www.npmjs.com/package/mta-deps-graphviz) package to generate a `mta.svg` file representing the modules, resources and relationships between them.
 
 This is an example of a generated `mta.svg` file:
 
