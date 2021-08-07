@@ -5,6 +5,7 @@
     "main": "index.js",
     "dependencies": {
         "graphviz": "0.0.9",
+        "mta-deps-graphviz": "^0.0.1",
         "mta-deps-parser": "0.0.1",
         "yaml": "^1.10.2"
     },
@@ -14,8 +15,8 @@
         "eslint-config-prettier": "^8.3.0",
         "eslint-plugin-import": "^2.23.4",
         "eslint-plugin-prettier": "3.4.0",
-        "prettier": "2.3.2",
-        "husky": "^7.0.0"
+        "husky": "^7.0.0",
+        "prettier": "2.3.2"
     },
     "scripts": {
         "start": "node index.js",
