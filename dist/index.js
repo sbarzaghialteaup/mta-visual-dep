@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /* eslint-disable no-console */
 const fs = require('fs');
 const MtaDeps = require('mta-deps-parser');
@@ -16,7 +17,7 @@ async function main() {
 
     renderedGraph.output('svg', 'mta.svg');
 
-    console.log(`mta.svg updated at ${new Date()}`);
+    console.log(`File mta.svg updated at ${new Date()}`);
 }
 
 main();

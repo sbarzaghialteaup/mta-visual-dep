@@ -2,7 +2,8 @@
     "name": "mta-visual-dep",
     "version": "0.0.1",
     "description": "SAP MTA Dependency Visualizer",
-    "main": "index.js",
+    "main": "./dist/index.js",
+    "bin": "./dist/index.js",
     "dependencies": {
         "mta-deps-graphviz": "^0.0.1",
         "mta-deps-parser": "0.0.1"
@@ -14,14 +15,17 @@
         "eslint-plugin-import": "^2.23.4",
         "eslint-plugin-prettier": "3.4.0",
         "husky": "^7.0.0",
-        "prettier": "2.3.2"
+        "jest": "^27.0.6",
+        "prettier": "2.3.2",
+        "rollup": "^2.56.0",
+        "rollup-plugin-preserve-shebangs": "^0.2.0"
     },
     "scripts": {
-        "start": "node index.js",
-        "lint": "eslint .",
+        "lint": "eslint ./src",
         "postlint": "echo ✅ lint valid",
-        "test": "npm run lint && npm start && exit 0",
-        "prepare": "husky install"
+        "test": "npm run lint && npm run build && jest",
+        "prepare": "husky install",
+        "build": "rollup -c config/rollup.node-config.js"
     },
     "author": "sbarzaghi@alteanet.it",
     "license": "ISC"
