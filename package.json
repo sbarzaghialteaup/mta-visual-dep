@@ -27,6 +27,16 @@
         "prepare": "husky install",
         "build": "rollup -c config/rollup.node-config.js"
     },
-    "author": "sbarzaghi@alteanet.it",
-    "license": "ISC"
+    "author": "Samuele Barzaghi <sbarzaghi@alteanet.it>",
+    "repository": "github:sbarzaghialteaup/mta-visual-dep",
+    "license": "ISC",
+    "files": [
+        "dist/"
+    ],
+    "keywords": [
+        "MTA",
+        "dependency",
+        "graph",
+        "SAP"
+    ]
 }
