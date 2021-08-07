@@ -4,10 +4,8 @@
     "description": "SAP MTA Dependency Visualizer",
     "main": "index.js",
     "dependencies": {
-        "graphviz": "0.0.9",
         "mta-deps-graphviz": "^0.0.1",
-        "mta-deps-parser": "0.0.1",
-        "yaml": "^1.10.2"
+        "mta-deps-parser": "0.0.1"
     },
     "devDependencies": {
         "eslint": "^7.31.0",
