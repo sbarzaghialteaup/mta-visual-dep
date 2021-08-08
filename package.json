@@ -6,7 +6,7 @@
     "bin": "./dist/index.js",
     "dependencies": {
         "mta-deps-graphviz": "^0.0.1",
-        "mta-deps-parser": "0.0.1"
+        "mta-deps-parser": "^0.0.1"
     },
     "devDependencies": {
         "eslint": "^7.31.0",
