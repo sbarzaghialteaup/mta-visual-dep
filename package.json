@@ -1,6 +1,6 @@
 {
     "name": "mta-visual-dep",
-    "version": "0.0.5",
+    "version": "0.0.6",
     "description": "SAP MTA Dependency Visualizer",
     "main": "./dist/index.js",
     "bin": "./dist/index.js",
