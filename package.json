@@ -1,12 +1,13 @@
 {
     "name": "mta-visual-dep",
-    "version": "0.0.6",
+    "version": "0.1.0",
     "description": "SAP MTA Dependency Visualizer",
     "main": "./dist/index.js",
     "bin": "./dist/index.js",
     "dependencies": {
-        "mta-deps-graphviz": "^0.0.3",
-        "mta-deps-parser": "^0.0.5"
+        "mta-deps-graphviz": "^0.1.0",
+        "mta-deps-parser": "^0.1.0",
+        "update-notifier": "^5.1.0"
     },
     "devDependencies": {
         "eslint": "^7.31.0",

@@ -3,6 +3,8 @@
 const fs = require('fs');
 const MtaDeps = require('mta-deps-parser');
 const GraphVizRenderer = require('mta-deps-graphviz');
+const updateNotifier = require('update-notifier');
+const pkg = require('../package.json');
 
 /**
  * Main
@@ -19,5 +21,7 @@ async function main() {
 
     console.log(`File mta.svg updated at ${new Date()}`);
 }
+
+updateNotifier({ pkg, updateCheckInterval: 0 }).notify({ isGlobal: true });
 
 main();
