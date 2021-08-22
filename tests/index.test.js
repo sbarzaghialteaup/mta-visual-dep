@@ -30,6 +30,11 @@ const tests = [
         expectedFilename: 'tests/workflow-mta.svg',
         expectedMd5: 'dccc74909646de3972d369f8d3a5e293',
     },
+    {
+        mtaFilename: 'tests/bookshop-demo-mta-cf.yaml',
+        expectedFilename: 'tests/bookshop-demo-mta-cf.svg',
+        expectedMd5: '7c5aaa1484d6642a21cc2af6956f715e',
+    },
 ];
 
 beforeAll(async () => {
