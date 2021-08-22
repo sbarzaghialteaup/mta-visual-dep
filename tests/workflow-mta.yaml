@@ -1,0 +1,121 @@
+_schema-version: "3.2"
+ID: DocumentCentricApprovalProcess
+version: 0.0.5
+modules:
+  - name: DocumentCentricApprovalProcess-destination-content
+    type: com.sap.application.content
+    requires:
+      - name: DocumentCentricApprovalProcess-destination-service
+        parameters:
+          content-target: true
+      - name: DocumentCentricApprovalProcess_html_repo_host
+        parameters:
+          service-key:
+            name: DocumentCentricApprovalProcess_html_repo_host-key
+      - name: uaa_DocumentCentricApprovalProcess
+        parameters:
+          service-key:
+            name: uaa_DocumentCentricApprovalProcess-key
+    parameters:
+      content:
+        subaccount:
+          destinations:
+            - Name: DocumentCentricApproval_DocumentCentricApprovalProcess_html_repo_host
+              ServiceInstanceName: Document-html5-app-host-service
+              ServiceKeyName: DocumentCentricApprovalProcess_html_repo_host-key
+              sap.cloud.service: DocumentCentricApproval
+            - Authentication: OAuth2UserTokenExchange
+              Name: DocumentCentricApproval_uaa_DocumentCentricApprovalProcess
+              ServiceInstanceName: DocumentCentricApprovalProcess-xsuaa-service
+              ServiceKeyName: uaa_DocumentCentricApprovalProcess-key
+              sap.cloud.service: DocumentCentricApproval
+          existing_destinations_policy: ignore
+    build-parameters:
+      no-source: true
+  - name: DocumentCentricApprovalProcess_ui_deployer
+    type: com.sap.application.content
+    path: .
+    requires:
+      - name: DocumentCentricApprovalProcess_html_repo_host
+        parameters:
+          content-target: true
+    build-parameters:
+      build-result: resources
+      requires:
+        - artifacts:
+            - DocumentCentricStartUI-content.zip
+          name: DocumentCentricStartUI
+          target-path: resources/
+        - artifacts:
+            - DocumentCentricTaskUI-content.zip
+          name: DocumentCentricTaskUI
+          target-path: resources/
+        - artifacts:
+            - DocumentCentricReworkUI-content.zip
+          name: DocumentCentricReworkUI
+          target-path: resources/
+  - name: DocumentCentricStartUI
+    type: html5
+    path: DocumentCentricStartUI
+    build-parameters:
+      builder: custom
+      commands:
+        - npm run build
+      supported-platforms: []
+  - name: DocumentApproval
+    type: com.sap.application.content
+    path: DocumentApproval
+    requires:
+      - name: Workflow
+        parameters:
+          content-target: true
+  - name: DocumentCentricTaskUI
+    type: html5
+    path: DocumentCentricTaskUI
+    build-parameters:
+      builder: custom
+      commands:
+        - npm run build
+      supported-platforms: []
+  - name: DocumentCentricReworkUI
+    type: html5
+    path: DocumentCentricReworkUI
+    build-parameters:
+      builder: custom
+      commands:
+        - npm run build
+      supported-platforms: []
+
+resources:
+  - name: DocumentCentricApprovalProcess-destination-service
+    type: org.cloudfoundry.managed-service
+    parameters:
+      config:
+        HTML5Runtime_enabled: true
+        version: 1.0.0
+      service: destination
+      service-name: DocumentCentricApprovalProcess-destination-service
+      service-plan: lite
+  - name: DocumentCentricApprovalProcess_html_repo_host
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: html5-apps-repo
+      service-name: Document-html5-app-host-service
+      service-plan: app-host
+  - name: Workflow
+    type: org.cloudfoundry.existing-service
+    parameters:
+      service: workflow
+      service-plan: standard
+  - name: uaa_DocumentCentricApprovalProcess
+    type: org.cloudfoundry.managed-service
+    parameters:
+      path: ./xs-security.json
+      service: xsuaa
+      service-name: DocumentCentricApprovalProcess-xsuaa-service
+      service-plan: application
+build-parameters:
+  before-all:
+    - builder: custom
+      commands:
+        - npm install
