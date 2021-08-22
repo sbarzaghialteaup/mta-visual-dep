@@ -8,17 +8,17 @@ const tests = [
     {
         mtaFilename: 'tests/solutions-mta.yaml',
         expectedFilename: 'tests/solutions-mta.svg',
-        expectedMd5: '531534c2917169ecec7cacb7db323bb9',
+        expectedMd5: '0f90973e4d9c6b0ef5c8c819dbca8c7d',
     },
     {
         mtaFilename: 'tests/hana-opensap-cloud-mta.yaml',
         expectedFilename: 'tests/hana-opensap-cloud-mta.svg',
-        expectedMd5: '11e63c515953f635527908de2b9fdfbe',
+        expectedMd5: '62e28d93c579e38e65fe62dc3f7e7e89',
     },
     {
         mtaFilename: 'tests/mta-teched-2020-ui.yaml',
         expectedFilename: 'tests/mta-teched-2020-ui.svg',
-        expectedMd5: 'be6580780c097829b4e89b044a412e60',
+        expectedMd5: 'f7872749d790622e7de9368093f9923f',
     },
     {
         mtaFilename: 'tests/mta-teched-2020-s4hana.yaml',
@@ -28,12 +28,12 @@ const tests = [
     {
         mtaFilename: 'tests/workflow-mta.yaml',
         expectedFilename: 'tests/workflow-mta.svg',
-        expectedMd5: 'dccc74909646de3972d369f8d3a5e293',
+        expectedMd5: '2f1f83e5a652e856d4ecc7183579a249',
     },
     {
         mtaFilename: 'tests/bookshop-demo-mta-cf.yaml',
         expectedFilename: 'tests/bookshop-demo-mta-cf.svg',
-        expectedMd5: '7c5aaa1484d6642a21cc2af6956f715e',
+        expectedMd5: '2a2f786f2631e15a61f7bcc9b0397d1d',
     },
 ];
 
