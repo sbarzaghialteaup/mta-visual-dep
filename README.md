@@ -3,7 +3,7 @@ Parse a SAP `mta.yaml` file and generates a `mta.svg` file representing the modu
 
 This is an example of a generated `mta.svg` file:
 
-![image](https://user-images.githubusercontent.com/51169423/127784448-30d7889c-edca-44a4-98f3-26b8f7714434.png)
+![mta](https://user-images.githubusercontent.com/51169423/129454822-ed9f1509-e131-484f-8951-071dd85ff647.png)
 
 # Installation
 
