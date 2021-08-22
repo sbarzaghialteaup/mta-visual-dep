@@ -9,8 +9,8 @@ const pkg = require('../package.json');
 /**
  * Main
  */
-async function main() {
-    const mtaString = fs.readFileSync('./mta.yaml', 'utf8');
+async function main(fileName) {
+    const mtaString = fs.readFileSync(fileName, 'utf8');
 
     const mtaGraph = MtaDeps.parse(mtaString);
     const renderedGraph = await GraphVizRenderer(mtaGraph);
@@ -24,4 +24,5 @@ async function main() {
 
 updateNotifier({ pkg, updateCheckInterval: 0 }).notify({ isGlobal: true });
 
-main();
+const fileName = process.argv[2] ? process.argv[2] : './mta.yaml';
+main(fileName);
