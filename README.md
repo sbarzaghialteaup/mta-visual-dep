@@ -1,9 +1,13 @@
 # Description
 Parse a SAP `mta.yaml` file and generates a `mta.svg` file representing the modules, resources and relationships between them.
 
-This is an example of a generated `mta.svg` file:
+Examples of generated files:
 
-![mta](https://user-images.githubusercontent.com/51169423/129454822-ed9f1509-e131-484f-8951-071dd85ff647.png)
+![solutions-mta](https://user-images.githubusercontent.com/51169423/130364774-1d9fe0a3-ec56-44a1-98c0-90dd1e3fa5ba.png)
+
+![bookshop-demo-mta-cf](https://user-images.githubusercontent.com/51169423/130364878-baa5af09-3d96-449f-ad72-f97cc4fbbbc4.png)
+
+![hana-opensap-cloud-mta](https://user-images.githubusercontent.com/51169423/130364915-b1c3c1c7-11c1-478e-baf8-529cdf328288.png)
 
 # Installation
 
