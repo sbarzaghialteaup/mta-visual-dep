@@ -1,0 +1,74 @@
+_schema-version: "3.1"
+ID: bookshop
+version: 1.0.0
+description: "A simple multitenant bookshop application"
+parameters:
+  enable-parallel-deployments: true
+
+build-parameters:
+  before-all:
+    - builder: custom
+      commands:
+        - npm install --production
+        - npx -p @sap/cds-dk cds build --production
+
+modules:
+  - name: bookshop-srv
+    type: nodejs
+    path: gen/srv
+    properties:
+      EXIT: 1 # required by deploy.js task to terminate
+      SAP_JWT_TRUST_ACL: [{ "clientid": "*", "identityzone": "sap-provisioning" }] # Trust between server and SaaS Manager
+    requires:
+      - name: bookshop-db
+      - name: bookshop-uaa
+      - name: bookshop-registry
+    provides:
+      - name: srv-api # required by consumers of CAP services (e.g. approuter)
+        properties:
+          srv-url: ${default-url}
+      - name: mtx-api # potentially required by approuter
+        properties:
+          srv-url: ${default-url}
+          mtx-url: ${default-url}
+
+resources:
+  - name: bookshop-db
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: service-manager
+      service-plan: container
+    properties:
+      hdi-service-name: ${service-name} # required for Java apps
+
+  - name: bookshop-uaa
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: xsuaa
+      service-plan: application
+      path: ./xs-security.json
+
+  - name: bookshop-registry
+    type: org.cloudfoundry.managed-service
+    requires:
+      - name: bookshop-uaa
+      - name: mtx-api
+        properties:
+          prop: ~{mtx-url}
+        parameters:
+          param: ~{mtx-url}
+    parameters:
+      service: saas-registry
+      service-plan: application
+      config:
+        xsappname: bookshop-${space}
+        appName: bookshop-${space}
+        displayName: bookshop
+        description: A simple CAP project.
+        #category: "Category"
+        appUrls:
+          onSubscription: ~{mtx-api/mtx-url}/mtx/v1/provisioning/tenant/{tenantId}
+          getDependencies: ~{mtx-api/srv-url}/mtx/v1/provisioning/dependencies
+          onSubscriptionAsync: false
+          onUnSubscriptionAsync: false
+          callbackTimeoutMillis: 300000
