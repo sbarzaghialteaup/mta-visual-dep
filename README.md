@@ -1,33 +1,45 @@
 # Description
-Parse a SAP `mta.yaml` file and generates a `mta.svg` file representing the modules, resources and relationships between them.
+This tool parses a SAP `mta.yaml` file and generates a `mta.svg` file representing the modules, resources, properties, destinations and relationships between them.
 
-Examples of generated files:
+## Examples of generated files
 
-![solutions-mta](https://user-images.githubusercontent.com/51169423/130364774-1d9fe0a3-ec56-44a1-98c0-90dd1e3fa5ba.png)
+CAP Bookshop Demo
+![CAP Bookshop Demo](https://raw.githubusercontent.com/sbarzaghialteaup/mta-visual-dep/master/generated-samples/bookshop-demo-mta-cf.svg)
 
-![bookshop-demo-mta-cf](https://user-images.githubusercontent.com/51169423/130364878-baa5af09-3d96-449f-ad72-f97cc4fbbbc4.png)
+HANA Cloud 2020 openSAP example
+![HANA-CLOUD-SAMPLES](https://raw.githubusercontent.com/sbarzaghialteaup/mta-visual-dep/master/generated-samples/hana-opensap-cloud-mta.svg)
 
-![hana-opensap-cloud-mta](https://user-images.githubusercontent.com/51169423/130364915-b1c3c1c7-11c1-478e-baf8-529cdf328288.png)
+Fiori App with approuter managed
+![Fiori App Approuter Managed](https://raw.githubusercontent.com/sbarzaghialteaup/mta-visual-dep/master/generated-samples/mta-fiori-app-approuter-managed.svg)
 
-# Installation
+CAP Multitenant
+![CAP Multitenant](https://raw.githubusercontent.com/sbarzaghialteaup/mta-visual-dep/master/generated-samples/mta-cap-mtx.svg)
 
-You can install as a tool in path with:
+Developer Keynote Dashboard UI
+![Developer Keynote Dashboard UI](https://raw.githubusercontent.com/sbarzaghialteaup/mta-visual-dep/master/generated-samples/mta-teched-2020-ui.svg)
+
+CAP Service
+![CAP Service](https://raw.githubusercontent.com/sbarzaghialteaup/mta-visual-dep/master/generated-samples/optional-self-host-cap.svg)
+
+CAP Service with Fiori Apps
+![Solutions](https://raw.githubusercontent.com/sbarzaghialteaup/mta-visual-dep/master/generated-samples/solutions-mta.svg)
+
+## Installation
+
+Install globally with:
 ```
-npm install -g mta-visual-dep
+> npm install -g mta-visual-dep
 ```
 
-# Usage
+## Usage
 
-Run the `mta-visual-dep` command in the folder containing the mta.yaml file, no options yet, more to come!
+Run the `mta-visual-dep` command in the folder containing the mta.yaml file:
 
 ```
-mta-visual-dep
+> mta-visual-dep
 ```
 
-The tool creates the mta.svg file and log to console the moment of the update:
-```
-File mta.svg updated at Sat Aug 07 2021 18:13:25 GMT+0200 (Central European Summer Time)
-```
+The tool creates the mta.svg file in the current folder
 
-# Notes
+## Notes
 Internally use the [`mta-deps-parser`](https://www.npmjs.com/package/mta-deps-parser) package to parse and the [`mta-deps-graphviz`](https://www.npmjs.com/package/mta-deps-graphviz) package to generate the svg file.
