@@ -8,37 +8,52 @@ const tests = [
     {
         mtaFilename: 'tests/solutions-mta.yaml',
         expectedFilename: 'tests/solutions-mta.svg',
-        expectedMd5: 'faf551fdfa65b2cc0d0effbefa45325a',
+        expectedMd5: '1481af3610a11425d85c6c61074b1696',
     },
     {
         mtaFilename: 'tests/hana-opensap-cloud-mta.yaml',
         expectedFilename: 'tests/hana-opensap-cloud-mta.svg',
-        expectedMd5: '6362ee6c1a0e78dfd2b213225a49913f',
+        expectedMd5: '9f72e640b16227513948225604c338b3',
     },
     {
         mtaFilename: 'tests/mta-teched-2020-ui.yaml',
         expectedFilename: 'tests/mta-teched-2020-ui.svg',
-        expectedMd5: 'f7872749d790622e7de9368093f9923f',
+        expectedMd5: '6a342aac6ddd8638c2480ea9a980f842',
     },
     {
         mtaFilename: 'tests/mta-teched-2020-s4hana.yaml',
         expectedFilename: 'tests/mta-teched-2020-s4hana.svg',
-        expectedMd5: '582140b0cf094b7f809e91d8865543ea',
+        expectedMd5: '2a0174d6dc51d13af446f341b65969f5',
     },
     {
         mtaFilename: 'tests/workflow-mta.yaml',
         expectedFilename: 'tests/workflow-mta.svg',
-        expectedMd5: '2f1f83e5a652e856d4ecc7183579a249',
+        expectedMd5: '1e3044f40b9f6a35b8a65566c5419d3b',
     },
     {
         mtaFilename: 'tests/bookshop-demo-mta-cf.yaml',
         expectedFilename: 'tests/bookshop-demo-mta-cf.svg',
-        expectedMd5: '106def2d4103ebd1076af2c46f7c4608',
+        expectedMd5: 'c6227b86327dffb4f29d658345098b53',
     },
     {
         mtaFilename: 'tests/mta-cap-mtx.yaml',
         expectedFilename: 'tests/mta-cap-mtx.svg',
-        expectedMd5: 'd507a6615c411c469f7da2cd50bacf36',
+        expectedMd5: '74e3db9179edd9eacfa143fd3f3d5b30',
+    },
+    {
+        mtaFilename: 'tests/cold-chain-mta.yaml',
+        expectedFilename: 'tests/cold-chain-mta.svg',
+        expectedMd5: '5b279a89c8432e18d293e6b9747add1e',
+    },
+    {
+        mtaFilename: 'tests/mta-fiori-app-approuter-managed.yaml',
+        expectedFilename: 'tests/mta-fiori-app-approuter-managed.svg',
+        expectedMd5: '35bb0660435d7c154d32e8bf4cd31a9d',
+    },
+    {
+        mtaFilename: 'tests/optional-self-host-cap.yaml',
+        expectedFilename: 'tests/optional-self-host-cap.svg',
+        expectedMd5: 'afae4e7fbae5ee1edb00ef028bc95a96',
     },
 ];
 

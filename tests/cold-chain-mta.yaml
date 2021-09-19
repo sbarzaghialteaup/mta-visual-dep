@@ -1,0 +1,554 @@
+#
+# ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀ #
+#    GLOBALS                                 #
+# ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄ #
+#
+ID: cloud-cold-chain-multitenant
+_schema-version: 3.2.0
+description: Cloud Cold Chain - Multitenant
+version: 0.0.118-2ad32986758c2ff265b8f85616025660d98a9453
+parameters:
+  enable-parallel-deployments: true
+  keep-existing-routes: true
+build-parameters:
+  before-all:
+    - builder: custom
+      commands:
+        - cds build --production
+#
+# ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀ #
+#    MODULES                                 #
+# ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄ #
+#
+modules:
+  #
+  #   ╔═══════════════════════════════════════╗   #
+  #   ║               CAP SERVICE             ║   #
+  #   ╚═══════════════════════════════════════╝   #
+  #
+  - name: mtt-cap-services
+    type: nodejs
+    path: gen/srv
+    parameters:
+      disk-quota: 640M
+      memory: 300M
+      buildpack: nodejs_buildpack
+    build-parameters:
+      ignore: ["default-env.json", "node_modules/"]
+      builder: custom
+      commands: []
+
+    properties:
+      SAP_JWT_TRUST_ACL: [{ "clientid": "*", "identityzone": "sap-provisioning" }] # Trust between server and SaaS Manager
+      EXIT: 1
+    requires:
+      - name: mtt-xsuaa
+      - name: mtt-service-manager
+      - name: mtt-saas
+      - name: mtt-application-logging
+      - name: mtt-redis
+      - name: mtt-enterprise-messaging
+    provides:
+      - name: mtt-cap-services-api
+        properties:
+          srv_api: ${default-url}
+      - name: mtt-cap-services-mtx-api
+        properties:
+          mtx-url: ${default-url}
+  #
+  #   ╔═══════════════════════════════════════╗   #
+  #   ║              JOBS MONITOR             ║   #
+  #   ╚═══════════════════════════════════════╝   #
+  #
+  - name: jobs-monitor
+    type: nodejs
+    path: jobs-monitor
+    parameters:
+      disk-quota: 200M
+      memory: 130M
+      buildpack: nodejs_buildpack
+    build-parameters:
+      ignore: ["default-env.json", "node_modules/"]
+      builder: custom
+      commands: []
+
+    properties:
+      EXIT: 1
+    requires:
+      - name: mtt-application-logging
+      - name: mtt-redis
+  #
+  #   ╔═══════════════════════════════════════╗   #
+  #   ║               APP ROUTER              ║   #
+  #   ╚═══════════════════════════════════════╝   #
+  #
+  - name: mtt-approuter
+    type: nodejs
+    path: cloud-foundry/approuter
+    parameters:
+      disk-quota: 160M
+      memory: 128M
+      buildpack: nodejs_buildpack
+    properties:
+      TENANT_HOST_PATTERN: "^(.*)-${space}-${app-name}.${default-domain}"
+      SAP_JWT_TRUST_ACL: [{ "clientid": "*", "identityzone": "sap-provisioning" }]
+      SEND_XFRAMEOPTIONS: false
+    build-parameters:
+      ignore: ["default-env.json", "node_modules/"]
+      builder: custom
+      commands: []
+
+    requires:
+      - name: mtt-destination
+      - name: mtt-xsuaa
+      - name: mtt-html5-repo-runtime
+      - name: mtt-portal
+      - name: mtt-saas
+      - name: mtt-application-logging
+      - name: mtt-cap-services-api
+        group: destinations
+        properties:
+          name: srv_api
+          url: ~{srv_api}
+          forwardAuthToken: true
+          timeout: 60000
+    provides:
+      - name: mtt-approuter-provisioning
+        properties:
+          url: ${default-url}/provisioning
+  #
+  #   ╔═══════════════════════════════════════╗   #
+  #   ║               HTML5 APPS              ║   #
+  #   ╚═══════════════════════════════════════╝   #
+  #
+  - name: ui_customercategories
+    type: html5
+    path: app/cloudcoldchain.customercategories
+    build-parameters:
+      builder: custom
+      commands:
+        - npm run build
+      supported-platforms: []
+      build-result: dist
+  #
+  - name: ui_customers
+    type: html5
+    path: app/cloudcoldchain.customers
+    build-parameters:
+      builder: custom
+      commands:
+        - npm run build
+      supported-platforms: []
+      build-result: dist
+  #
+  - name: ui_controlpoints
+    type: html5
+    path: app/cloudcoldchain.controlpoints
+    build-parameters:
+      builder: custom
+      commands:
+        - npm run build
+      supported-platforms: []
+      build-result: dist
+  #
+  - name: ui_controlpointscategories
+    type: html5
+    path: app/cloudcoldchain.controlpointscategories
+    build-parameters:
+      builder: custom
+      commands:
+        - npm run build
+      supported-platforms: []
+      build-result: dist
+  #
+  - name: ui_areacategories
+    type: html5
+    path: app/cloudcoldchain.areacategories
+    build-parameters:
+      builder: custom
+      commands:
+        - npm run build
+      supported-platforms: []
+      build-result: dist
+  #
+  - name: ui_areas
+    type: html5
+    path: app/cloudcoldchain.areas
+    build-parameters:
+      builder: custom
+      commands:
+        - npm run build
+      supported-platforms: []
+      build-result:
+        dist
+        #
+  - name: ui_locations
+    type: html5
+    path: app/cloudcoldchain.locations
+    build-parameters:
+      builder: custom
+      commands:
+        - npm run build
+      supported-platforms: []
+      build-result:
+        dist
+        #
+  - name: ui_products
+    type: html5
+    path: app/cloudcoldchain.products
+    build-parameters:
+      builder: custom
+      commands:
+        - npm run build
+      supported-platforms: []
+      build-result:
+        dist
+        #
+  - name: ui_temperatureranges
+    type: html5
+    path: app/cloudcoldchain.temperatureranges
+    build-parameters:
+      builder: custom
+      commands:
+        - npm run build
+      supported-platforms: []
+      build-result:
+        dist
+        #
+  - name: ui_lots
+    type: html5
+    path: app/cloudcoldchain.lots
+    build-parameters:
+      builder: custom
+      commands:
+        - npm run build
+      supported-platforms: []
+      build-result: dist
+  #
+  - name: ui_routes
+    type: html5
+    path: app/cloudcoldchain.routes
+    build-parameters:
+      builder: custom
+      commands:
+        - npm run build
+      supported-platforms: []
+      build-result: dist
+  #
+  - name: ui_handlingunits
+    type: html5
+    path: app/cloudcoldchain.handlingunits
+    build-parameters:
+      builder: custom
+      commands:
+        - npm run build
+      supported-platforms: []
+      build-result: dist
+  #
+  - name: ui_outofrange
+    type: html5
+    path: app/cloudcoldchain.outofrange
+    build-parameters:
+      builder: custom
+      commands:
+        - npm run build
+      supported-platforms: []
+      build-result: dist
+  #
+  - name: ui_handlingunittypologies
+    type: html5
+    path: app/cloudcoldchain.handlingunittypologies
+    build-parameters:
+      builder: custom
+      commands:
+        - npm run build
+      supported-platforms: []
+      build-result: dist
+  #
+  - name: ui_departments
+    type: html5
+    path: app/cloudcoldchain.department
+    build-parameters:
+      builder: custom
+      commands:
+        - npm run build
+      supported-platforms: []
+      build-result: dist
+  #
+  - name: ui_alertserrortor
+    type: html5
+    path: app/cloudcoldchain.alertserrortor
+    build-parameters:
+      builder: custom
+      commands:
+        - npm run build
+      supported-platforms: []
+      build-result: dist
+  #
+  - name: ui_notifications
+    type: html5
+    path: app/cloudcoldchain.notification
+    build-parameters:
+      builder: custom
+      commands:
+        - npm run build
+      supported-platforms: []
+      build-result: dist
+  #
+  #   ╔═══════════════════════════════════════╗   #
+  #   ║            HTML5 DEPLOYER             ║   #
+  #   ╚═══════════════════════════════════════╝   #
+  #
+  - name: mtt-html-deployer
+    type: com.sap.application.content
+    path: cloud-foundry/html5-deployer
+    requires:
+      - name: mtt-html5-repo-host
+        parameters:
+          content-target: true
+    build-parameters:
+      build-result: resources
+      requires:
+        #
+        - name: ui_customercategories
+          artifacts:
+            - ./uimodule*.zip
+          target-path: resources/
+        #
+        - name: ui_customers
+          artifacts:
+            - ./uimodule*.zip
+          target-path: resources/
+        #
+        - name: ui_controlpoints
+          artifacts:
+            - ./uimodule*.zip
+          target-path: resources/
+          #
+        - name: ui_controlpointscategories
+          artifacts:
+            - ./uimodule*.zip
+          target-path: resources/
+          #
+        - name: ui_areacategories
+          artifacts:
+            - ./uimodule*.zip
+          target-path: resources/
+          #
+        - name: ui_areas
+          artifacts:
+            - ./uimodule*.zip
+          target-path: resources/
+          #
+        - name: ui_locations
+          artifacts:
+            - ./uimodule*.zip
+          target-path: resources/
+        #
+        - name: ui_products
+          artifacts:
+            - ./uimodule*.zip
+          target-path: resources/
+        #
+        - name: ui_temperatureranges
+          artifacts:
+            - ./uimodule*.zip
+          target-path: resources/
+        #
+        - name: ui_lots
+          artifacts:
+            - ./uimodule*.zip
+          target-path: resources/
+        #
+        - name: ui_routes
+          artifacts:
+            - ./uimodule*.zip
+          target-path: resources/
+        #
+        - name: ui_handlingunits
+          artifacts:
+            - ./uimodule*.zip
+          target-path: resources/
+        #
+        - name: ui_outofrange
+          artifacts:
+            - ./uimodule*.zip
+          target-path: resources/
+        #
+        - name: ui_handlingunittypologies
+          artifacts:
+            - ./uimodule*.zip
+          target-path: resources/
+        #
+        - name: ui_departments
+          artifacts:
+            - ./uimodule*.zip
+          target-path: resources/
+        #
+        - name: ui_alertserrortor
+          artifacts:
+            - ./uimodule*.zip
+          target-path: resources/
+        #
+        - name: ui_notifications
+          artifacts:
+            - ./uimodule*.zip
+          target-path: resources/
+
+  #
+  #   ╔═══════════════════════════════════════╗   #
+  #   ║            PORTAL DEPLOYER            ║   #
+  #   ╚═══════════════════════════════════════╝   #
+  #
+  - name: mtt-portal-deployer
+    type: com.sap.application.content
+    path: cloud-foundry/portal-deployer
+    parameters:
+      config:
+        TENANT_HOST_PATTERN: "^(.*)-${space}-mtt-approuter.${default-domain}"
+    requires:
+      - name: mtt-portal
+        parameters:
+          content-target: true
+          service-key:
+            name: content-deploy-key
+            config:
+              content-endpoint: developer
+      - name: mtt-html5-repo-host
+      - name: mtt-xsuaa
+      - name: mtt-saas
+
+#
+# ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀ #
+#     RESOURCES                              #
+# ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄ #
+#
+resources:
+  #
+  #   ┌─────────────────────────────────────┐   #
+  #   │            DESTINATIONS             │   #
+  #   └─────────────────────────────────────┘   #
+  #
+  - name: mtt-destination
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: destination
+      service-plan: lite
+  #
+  #   ┌─────────────────────────────────────┐   #
+  #   │           SERVICE MANAGER           │   #
+  #   └─────────────────────────────────────┘   #
+  #
+  - name: mtt-service-manager
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: service-manager
+      service-plan: container
+    properties:
+      hdi-service-name: ${service-name}
+  #
+  #   ┌─────────────────────────────────────┐   #
+  #   │                XSUAA                │   #
+  #   └─────────────────────────────────────┘   #
+  #
+  - name: mtt-xsuaa
+    type: org.cloudfoundry.managed-service
+    properties:
+      XSAPPNAME: ${xsuaa-app}
+    parameters:
+      service: xsuaa
+      service-plan: application
+      path: cloud-foundry/xsuaa/xs-security.json
+      xsuaa-app: ${org}-${space}-cloud-cold-chain
+      config:
+        xsappname: ${xsuaa-app}
+        tenant-mode: shared
+  #
+  #   ┌─────────────────────────────────────┐   #
+  #   │                SAAS                 │   #
+  #   └─────────────────────────────────────┘   #
+  #
+  - name: mtt-saas
+    type: org.cloudfoundry.managed-service
+    requires:
+      - name: mtt-xsuaa
+      - name: mtt-cap-services-mtx-api
+      - name: mtt-approuter-provisioning
+    parameters:
+      service: saas-registry
+      service-plan: application
+      config:
+        appName: ~{mtt-xsuaa/XSAPPNAME}
+        xsappname: ~{mtt-xsuaa/XSAPPNAME}
+        displayName: "Cloud Cold Chain"
+        description: ~{mtt-approuter-provisioning/url}/mtx/v1/provisioning/dependencies
+        category: "Cloud Cold Chain"
+        appUrls:
+          getDependencies: ~{mtt-approuter-provisioning/url}/mtx/v1/provisioning/dependencies
+          onSubscription: ~{mtt-cap-services-mtx-api/mtx-url}/mtx/v1/provisioning/tenant/{tenantId}
+          onSubscriptionAsync: false
+          onUnSubscriptionAsync: false
+          callbackTimeoutMillis: 300000
+  #
+  #   ┌─────────────────────────────────────┐   #
+  #   │            HTML5 RUNTIME            │   #
+  #   └─────────────────────────────────────┘   #
+  #
+  - name: mtt-html5-repo-runtime
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: html5-apps-repo
+      service-plan: app-runtime
+  #
+  #   ┌─────────────────────────────────────┐   #
+  #   │              HTML5 HOST             │   #
+  #   └─────────────────────────────────────┘   #
+  #
+  - name: mtt-html5-repo-host
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: html5-apps-repo
+      service-plan: app-host
+      config:
+        sizeLimit: 1
+  #
+  #   ┌─────────────────────────────────────┐   #
+  #   │            PORTAL SERVICE           │   #
+  #   └─────────────────────────────────────┘   #
+  #
+  - name: mtt-portal
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: portal
+      service-plan: standard
+  #
+  #   ┌─────────────────────────────────────┐   #
+  #   │         APPLICATION LOGGING         │   #
+  #   └─────────────────────────────────────┘   #
+  #
+  - name: mtt-application-logging
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: application-logs
+      service-plan: lite
+  #
+  #   ┌─────────────────────────────────────┐   #
+  #   │                REDIS                │   #
+  #   └─────────────────────────────────────┘   #
+  #
+  - name: mtt-redis
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: redis-cache
+      service-plan: standard
+  #
+  # ┌─────────────────────────────────────┐   #
+  # │        ENTERPRISE MESSAGING         │   #
+  # └─────────────────────────────────────┘   #
+  #
+  - name: mtt-enterprise-messaging
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: enterprise-messaging
+      service-plan: default
+      path: cloud-foundry/enterprise-messaging/config.json
