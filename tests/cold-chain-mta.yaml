@@ -1,15 +1,20 @@
-ID: solutions-portal
+#
+# ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀ #
+#    GLOBALS                                 #
+# ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄ #
+#
+ID: cloud-cold-chain-multitenant
 _schema-version: 3.2.0
-description: Solutions Portal
-version: 1.0.67-33c817ab048257a52d41ac0bd5448080adf1d7b0
+description: Cloud Cold Chain - Multitenant
+version: 0.0.118-2ad32986758c2ff265b8f85616025660d98a9453
 parameters:
   enable-parallel-deployments: true
+  keep-existing-routes: true
 build-parameters:
   before-all:
     - builder: custom
       commands:
-        - npm install --production
-        - npx -p @sap/cds-dk cds build --production
+        - cds build --production
 #
 # ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀ #
 #    MODULES                                 #
@@ -21,99 +26,135 @@ modules:
   #   ║               CAP SERVICE             ║   #
   #   ╚═══════════════════════════════════════╝   #
   #
-  - name: cap-services
+  - name: mtt-cap-services
     type: nodejs
     path: gen/srv
     parameters:
-      disk-quota: 512M
-      memory: 256M
+      disk-quota: 640M
+      memory: 300M
+      buildpack: nodejs_buildpack
     build-parameters:
       ignore: ["default-env.json", "node_modules/"]
       builder: custom
       commands: []
+
+    properties:
+      SAP_JWT_TRUST_ACL: [{ "clientid": "*", "identityzone": "sap-provisioning" }] # Trust between server and SaaS Manager
+      EXIT: 1
+    requires:
+      - name: mtt-xsuaa
+      - name: mtt-service-manager
+      - name: mtt-saas
+      - name: mtt-application-logging
+      - name: mtt-redis
+      - name: mtt-enterprise-messaging
+    provides:
+      - name: mtt-cap-services-api
+        properties:
+          srv_api: ${default-url}
+      - name: mtt-cap-services-mtx-api
+        properties:
+          mtx-url: ${default-url}
+  #
+  #   ╔═══════════════════════════════════════╗   #
+  #   ║              JOBS MONITOR             ║   #
+  #   ╚═══════════════════════════════════════╝   #
+  #
+  - name: jobs-monitor
+    type: nodejs
+    path: jobs-monitor
+    parameters:
+      disk-quota: 200M
+      memory: 130M
+      buildpack: nodejs_buildpack
+    build-parameters:
+      ignore: ["default-env.json", "node_modules/"]
+      builder: custom
+      commands: []
+
     properties:
       EXIT: 1
     requires:
-      - name: cap-template-uaa
-      - name: cap-template-hanadb
-      - name: cap-application-logging
-    provides:
-      - name: cap-services-api
-        properties:
-          srv_api: ${default-url}
+      - name: mtt-application-logging
+      - name: mtt-redis
   #
   #   ╔═══════════════════════════════════════╗   #
   #   ║               APP ROUTER              ║   #
   #   ╚═══════════════════════════════════════╝   #
   #
-  - name: approuter
+  - name: mtt-approuter
     type: nodejs
     path: cloud-foundry/approuter
     parameters:
-      disk-quota: 512M
+      disk-quota: 160M
       memory: 128M
+      buildpack: nodejs_buildpack
+    properties:
+      TENANT_HOST_PATTERN: "^(.*)-${space}-${app-name}.${default-domain}"
+      SAP_JWT_TRUST_ACL: [{ "clientid": "*", "identityzone": "sap-provisioning" }]
+      SEND_XFRAMEOPTIONS: false
     build-parameters:
       ignore: ["default-env.json", "node_modules/"]
       builder: custom
       commands: []
+
     requires:
-      - name: cap-template-destination
-      - name: cap-template-uaa
-      - name: cap-template-html5-repo-runtime
-      - name: cap-template-portal
-      - name: cap-template-theming
-      - name: cap-application-logging
-      - name: cap-services-api
+      - name: mtt-destination
+      - name: mtt-xsuaa
+      - name: mtt-html5-repo-runtime
+      - name: mtt-portal
+      - name: mtt-saas
+      - name: mtt-application-logging
+      - name: mtt-cap-services-api
         group: destinations
         properties:
           name: srv_api
           url: ~{srv_api}
           forwardAuthToken: true
-  #
-  #   ╔═══════════════════════════════════════╗   #
-  #   ║            HANA DB DEPLOYER           ║   #
-  #   ╚═══════════════════════════════════════╝   #
-  #
-  - name: cap-template-hanadb-deployer
-    type: hdb
-    path: gen/db
-    parameters:
-      disk-quota: 512M
-      memory: 128M
-    build-parameters:
-      ignore: ["default-env.json", "node_modules/"]
-      builder: custom
-      commands: []
-    requires:
-      - name: cap-template-uaa
-      - name: cap-template-hanadb
-      - name: cap-application-logging
+          timeout: 60000
+    provides:
+      - name: mtt-approuter-provisioning
+        properties:
+          url: ${default-url}/provisioning
   #
   #   ╔═══════════════════════════════════════╗   #
   #   ║               HTML5 APPS              ║   #
   #   ╚═══════════════════════════════════════╝   #
   #
-  - name: ui_datacenters
+  - name: ui_controlpoints
     type: html5
-    path: app/com.alteaup.solutions.datacenters
+    path: app/cloudcoldchain.controlpoints
     build-parameters:
       builder: custom
       commands:
         - npm run build
       supported-platforms: []
       build-result: dist
-  - name: ui_accessrights
+  - name: ui_areas
     type: html5
-    path: app/com.alteaup.solutions.accessrights
+    path: app/cloudcoldchain.areas
     build-parameters:
       builder: custom
       commands:
         - npm run build
       supported-platforms: []
-      build-result: dist
-  - name: ui_poweronrules
+      build-result:
+        dist
+        #
+  - name: ui_temperatureranges
     type: html5
-    path: app/com.alteaup.solutions.poweronrules
+    path: app/cloudcoldchain.temperatureranges
+    build-parameters:
+      builder: custom
+      commands:
+        - npm run build
+      supported-platforms: []
+      build-result:
+        dist
+        #
+  - name: ui_notifications
+    type: html5
+    path: app/cloudcoldchain.notification
     build-parameters:
       builder: custom
       commands:
@@ -125,46 +166,59 @@ modules:
   #   ║            HTML5 DEPLOYER             ║   #
   #   ╚═══════════════════════════════════════╝   #
   #
-  - name: cap-template-html-deployer
+  - name: mtt-html-deployer
     type: com.sap.application.content
     path: cloud-foundry/html5-deployer
     requires:
-      - name: cap-template-html5-repo-host
+      - name: mtt-html5-repo-host
         parameters:
           content-target: true
     build-parameters:
       build-result: resources
       requires:
-        - name: ui_datacenters
+        - name: ui_controlpoints
           artifacts:
             - ./uimodule*.zip
           target-path: resources/
-        - name: ui_accessrights
+          #
+        - name: ui_areas
           artifacts:
             - ./uimodule*.zip
           target-path: resources/
-        - name: ui_poweronrules
+          #
+        - name: ui_temperatureranges
           artifacts:
             - ./uimodule*.zip
           target-path: resources/
+        #
+        - name: ui_notifications
+          artifacts:
+            - ./uimodule*.zip
+          target-path: resources/
+
   #
   #   ╔═══════════════════════════════════════╗   #
   #   ║            PORTAL DEPLOYER            ║   #
   #   ╚═══════════════════════════════════════╝   #
   #
-  - name: cap-template-portal-deployer
+  - name: mtt-portal-deployer
     type: com.sap.application.content
     path: cloud-foundry/portal-deployer
+    parameters:
+      config:
+        TENANT_HOST_PATTERN: "^(.*)-${space}-mtt-approuter.${default-domain}"
     requires:
-      - name: cap-template-portal
+      - name: mtt-portal
         parameters:
           content-target: true
           service-key:
             name: content-deploy-key
             config:
               content-endpoint: developer
-      - name: cap-template-html5-repo-host
-      - name: cap-template-uaa
+      - name: mtt-html5-repo-host
+      - name: mtt-xsuaa
+      - name: mtt-saas
+
 #
 # ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀ #
 #     RESOURCES                              #
@@ -176,42 +230,86 @@ resources:
   #   │            DESTINATIONS             │   #
   #   └─────────────────────────────────────┘   #
   #
-  - name: cap-template-destination
+  - name: mtt-destination
     type: org.cloudfoundry.managed-service
     parameters:
-      service-plan: lite
       service: destination
+      service-plan: lite
+  #
+  #   ┌─────────────────────────────────────┐   #
+  #   │           SERVICE MANAGER           │   #
+  #   └─────────────────────────────────────┘   #
+  #
+  - name: mtt-service-manager
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: service-manager
+      service-plan: container
+    properties:
+      hdi-service-name: ${service-name}
   #
   #   ┌─────────────────────────────────────┐   #
   #   │                XSUAA                │   #
   #   └─────────────────────────────────────┘   #
   #
-  - name: cap-template-uaa
+  - name: mtt-xsuaa
     type: org.cloudfoundry.managed-service
+    properties:
+      XSAPPNAME: ${xsuaa-app}
     parameters:
-      path: cloud-foundry/xsuaa/xs-security.json
-      service-plan: application
       service: xsuaa
+      service-plan: application
+      path: cloud-foundry/xsuaa/xs-security.json
+      xsuaa-app: ${org}-${space}-cloud-cold-chain
+      config:
+        xsappname: ${xsuaa-app}
+        tenant-mode: shared
+  #
+  #   ┌─────────────────────────────────────┐   #
+  #   │                SAAS                 │   #
+  #   └─────────────────────────────────────┘   #
+  #
+  - name: mtt-saas
+    type: org.cloudfoundry.managed-service
+    requires:
+      - name: mtt-xsuaa
+      - name: mtt-cap-services-mtx-api
+      - name: mtt-approuter-provisioning
+    parameters:
+      service: saas-registry
+      service-plan: application
+      config:
+        appName: ~{mtt-xsuaa/XSAPPNAME}
+        xsappname: ~{mtt-xsuaa/XSAPPNAME}
+        displayName: "Cloud Cold Chain"
+        description: ~{mtt-approuter-provisioning/url}/mtx/v1/provisioning/dependencies
+        category: "Cloud Cold Chain"
+        appUrls:
+          getDependencies: ~{mtt-approuter-provisioning/url}/mtx/v1/provisioning/dependencies
+          onSubscription: ~{mtt-cap-services-mtx-api/mtx-url}/mtx/v1/provisioning/tenant/{tenantId}
+          onSubscriptionAsync: false
+          onUnSubscriptionAsync: false
+          callbackTimeoutMillis: 300000
   #
   #   ┌─────────────────────────────────────┐   #
   #   │            HTML5 RUNTIME            │   #
   #   └─────────────────────────────────────┘   #
   #
-  - name: cap-template-html5-repo-runtime
+  - name: mtt-html5-repo-runtime
     type: org.cloudfoundry.managed-service
     parameters:
-      service-plan: app-runtime
       service: html5-apps-repo
+      service-plan: app-runtime
   #
   #   ┌─────────────────────────────────────┐   #
   #   │              HTML5 HOST             │   #
   #   └─────────────────────────────────────┘   #
   #
-  - name: cap-template-html5-repo-host
+  - name: mtt-html5-repo-host
     type: org.cloudfoundry.managed-service
     parameters:
-      service-plan: app-host
       service: html5-apps-repo
+      service-plan: app-host
       config:
         sizeLimit: 1
   #
@@ -219,40 +317,39 @@ resources:
   #   │            PORTAL SERVICE           │   #
   #   └─────────────────────────────────────┘   #
   #
-  - name: cap-template-portal
+  - name: mtt-portal
     type: org.cloudfoundry.managed-service
     parameters:
-      service-plan: standard
       service: portal
-  #
-  #   ┌─────────────────────────────────────┐   #
-  #   │               HANA DB               │   #
-  #   └─────────────────────────────────────┘   #
-  #
-  - name: cap-template-hanadb
-    type: com.sap.xs.hdi-container
-    parameters:
-      service: hana
-      service-plan: hdi-shared
-    properties:
-      hdi-service-name: ${service-name}
-  #
-  #   ┌─────────────────────────────────────┐   #
-  #   │           UI THEME DESIGNER         │   #
-  #   └─────────────────────────────────────┘   #
-  #
-  - name: cap-template-theming
-    type: org.cloudfoundry.managed-service
-    parameters:
-      service: theming
       service-plan: standard
   #
   #   ┌─────────────────────────────────────┐   #
   #   │         APPLICATION LOGGING         │   #
   #   └─────────────────────────────────────┘   #
   #
-  - name: cap-application-logging
+  - name: mtt-application-logging
     type: org.cloudfoundry.managed-service
     parameters:
       service: application-logs
       service-plan: lite
+  #
+  #   ┌─────────────────────────────────────┐   #
+  #   │                REDIS                │   #
+  #   └─────────────────────────────────────┘   #
+  #
+  - name: mtt-redis
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: redis-cache
+      service-plan: standard
+  #
+  # ┌─────────────────────────────────────┐   #
+  # │        ENTERPRISE MESSAGING         │   #
+  # └─────────────────────────────────────┘   #
+  #
+  - name: mtt-enterprise-messaging
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: enterprise-messaging
+      service-plan: default
+      path: cloud-foundry/enterprise-messaging/config.json
