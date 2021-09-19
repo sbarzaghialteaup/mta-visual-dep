@@ -121,26 +121,6 @@ modules:
   #   ║               HTML5 APPS              ║   #
   #   ╚═══════════════════════════════════════╝   #
   #
-  - name: ui_customercategories
-    type: html5
-    path: app/cloudcoldchain.customercategories
-    build-parameters:
-      builder: custom
-      commands:
-        - npm run build
-      supported-platforms: []
-      build-result: dist
-  #
-  - name: ui_customers
-    type: html5
-    path: app/cloudcoldchain.customers
-    build-parameters:
-      builder: custom
-      commands:
-        - npm run build
-      supported-platforms: []
-      build-result: dist
-  #
   - name: ui_controlpoints
     type: html5
     path: app/cloudcoldchain.controlpoints
@@ -150,52 +130,9 @@ modules:
         - npm run build
       supported-platforms: []
       build-result: dist
-  #
-  - name: ui_controlpointscategories
-    type: html5
-    path: app/cloudcoldchain.controlpointscategories
-    build-parameters:
-      builder: custom
-      commands:
-        - npm run build
-      supported-platforms: []
-      build-result: dist
-  #
-  - name: ui_areacategories
-    type: html5
-    path: app/cloudcoldchain.areacategories
-    build-parameters:
-      builder: custom
-      commands:
-        - npm run build
-      supported-platforms: []
-      build-result: dist
-  #
   - name: ui_areas
     type: html5
     path: app/cloudcoldchain.areas
-    build-parameters:
-      builder: custom
-      commands:
-        - npm run build
-      supported-platforms: []
-      build-result:
-        dist
-        #
-  - name: ui_locations
-    type: html5
-    path: app/cloudcoldchain.locations
-    build-parameters:
-      builder: custom
-      commands:
-        - npm run build
-      supported-platforms: []
-      build-result:
-        dist
-        #
-  - name: ui_products
-    type: html5
-    path: app/cloudcoldchain.products
     build-parameters:
       builder: custom
       commands:
@@ -215,76 +152,6 @@ modules:
       build-result:
         dist
         #
-  - name: ui_lots
-    type: html5
-    path: app/cloudcoldchain.lots
-    build-parameters:
-      builder: custom
-      commands:
-        - npm run build
-      supported-platforms: []
-      build-result: dist
-  #
-  - name: ui_routes
-    type: html5
-    path: app/cloudcoldchain.routes
-    build-parameters:
-      builder: custom
-      commands:
-        - npm run build
-      supported-platforms: []
-      build-result: dist
-  #
-  - name: ui_handlingunits
-    type: html5
-    path: app/cloudcoldchain.handlingunits
-    build-parameters:
-      builder: custom
-      commands:
-        - npm run build
-      supported-platforms: []
-      build-result: dist
-  #
-  - name: ui_outofrange
-    type: html5
-    path: app/cloudcoldchain.outofrange
-    build-parameters:
-      builder: custom
-      commands:
-        - npm run build
-      supported-platforms: []
-      build-result: dist
-  #
-  - name: ui_handlingunittypologies
-    type: html5
-    path: app/cloudcoldchain.handlingunittypologies
-    build-parameters:
-      builder: custom
-      commands:
-        - npm run build
-      supported-platforms: []
-      build-result: dist
-  #
-  - name: ui_departments
-    type: html5
-    path: app/cloudcoldchain.department
-    build-parameters:
-      builder: custom
-      commands:
-        - npm run build
-      supported-platforms: []
-      build-result: dist
-  #
-  - name: ui_alertserrortor
-    type: html5
-    path: app/cloudcoldchain.alertserrortor
-    build-parameters:
-      builder: custom
-      commands:
-        - npm run build
-      supported-platforms: []
-      build-result: dist
-  #
   - name: ui_notifications
     type: html5
     path: app/cloudcoldchain.notification
@@ -309,28 +176,7 @@ modules:
     build-parameters:
       build-result: resources
       requires:
-        #
-        - name: ui_customercategories
-          artifacts:
-            - ./uimodule*.zip
-          target-path: resources/
-        #
-        - name: ui_customers
-          artifacts:
-            - ./uimodule*.zip
-          target-path: resources/
-        #
         - name: ui_controlpoints
-          artifacts:
-            - ./uimodule*.zip
-          target-path: resources/
-          #
-        - name: ui_controlpointscategories
-          artifacts:
-            - ./uimodule*.zip
-          target-path: resources/
-          #
-        - name: ui_areacategories
           artifacts:
             - ./uimodule*.zip
           target-path: resources/
@@ -340,52 +186,7 @@ modules:
             - ./uimodule*.zip
           target-path: resources/
           #
-        - name: ui_locations
-          artifacts:
-            - ./uimodule*.zip
-          target-path: resources/
-        #
-        - name: ui_products
-          artifacts:
-            - ./uimodule*.zip
-          target-path: resources/
-        #
         - name: ui_temperatureranges
-          artifacts:
-            - ./uimodule*.zip
-          target-path: resources/
-        #
-        - name: ui_lots
-          artifacts:
-            - ./uimodule*.zip
-          target-path: resources/
-        #
-        - name: ui_routes
-          artifacts:
-            - ./uimodule*.zip
-          target-path: resources/
-        #
-        - name: ui_handlingunits
-          artifacts:
-            - ./uimodule*.zip
-          target-path: resources/
-        #
-        - name: ui_outofrange
-          artifacts:
-            - ./uimodule*.zip
-          target-path: resources/
-        #
-        - name: ui_handlingunittypologies
-          artifacts:
-            - ./uimodule*.zip
-          target-path: resources/
-        #
-        - name: ui_departments
-          artifacts:
-            - ./uimodule*.zip
-          target-path: resources/
-        #
-        - name: ui_alertserrortor
           artifacts:
             - ./uimodule*.zip
           target-path: resources/
