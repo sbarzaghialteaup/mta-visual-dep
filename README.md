@@ -26,7 +26,11 @@ CAP Service with Fiori Apps
 
 ## Installation
 
-Install globally with:
+> Graphviz must be installed on your system, if not yet installed look at:
+
+[Install graphviz](https://graphviz.org/download/)
+
+> Install mta-visual-dep globally with:
 ```
 > npm install -g mta-visual-dep
 ```
